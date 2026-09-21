@@ -6,7 +6,7 @@
 // IMPORTANTE: ao publicar uma versão nova, troque a VERSION abaixo E a
 // APP_VERSION no index.html pelo MESMO número. O GitHub confere
 // (workflow "Conferir versão") e fica vermelho se estiverem diferentes.
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.0.1';
 const CACHE = 'dinamica-natural-' + VERSION;
 
 const CASCO = [
