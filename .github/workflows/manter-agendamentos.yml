@@ -1,0 +1,38 @@
+name: Manter agendamentos vivos
+
+# Lição do Trupe — o GitHub DESATIVA todos os workflows agendados quando
+# o repositório fica 60 dias sem nenhum commit (execuções de cron não
+# contam). Sem isto, num período sem mudanças no app, o keepalive pararia
+# (e o Supabase pausaria o projeto) e o backup pararia — em silêncio.
+#
+# Uma vez por mês, atualiza a data em BATIMENTO.md e faz um commit
+# mínimo, zerando o contador dos 60 dias.
+
+on:
+  schedule:
+    - cron: '0 9 1 * *'    # dia 1 de cada mês, 6h em Brasília
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  batimento:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Registrar batimento mensal
+        run: |
+          {
+            echo "Último batimento: $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo "Arquivo atualizado automaticamente uma vez por mês para o repositório"
+            echo "nunca ficar 60 dias sem commit — senão o GitHub desativa o keepalive"
+            echo "e o backup em silêncio."
+          } > BATIMENTO.md
+          git config user.name "batimento-automatico"
+          git config user.email "actions@github.com"
+          git add BATIMENTO.md
+          git commit -m "Batimento mensal (mantém os agendamentos ativos)" || echo "nada a commitar"
+          git push
