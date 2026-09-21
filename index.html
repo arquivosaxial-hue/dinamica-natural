@@ -303,7 +303,7 @@ select.entrada{appearance:none;background-image:url("data:image/svg+xml,%3Csvg x
 //  Ao publicar mudança: suba APP_VERSION aqui E a VERSION no sw.js
 //  (o GitHub confere se as duas batem e fica vermelho se não).
 // ============================================================
-const APP_VERSION = 'v1.0.5';
+const APP_VERSION = 'v1.0.6';
 const SUPABASE_URL = 'https://tfmogwjmvuvrdxgrfopi.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_u8_1FLQ2ekhds_25aXNrww_WF1mkLB8';
 
@@ -1494,6 +1494,7 @@ function acoesParticipante(id) {
         ? `<button class="btn btn-perigo" data-a="bloquear">Bloquear acesso</button>`
         : `<button class="btn btn-verde" data-a="reativar">Reativar acesso</button>`)}
       ${eu || p.removido_em ? '' : `<button class="btn btn-perigo" data-a="revogar">Revogar acesso (remover da lista)</button>`}
+      ${!eu && p.removido_em ? `<button class="btn btn-perigo" data-a="excluir">${ic('lixo')}Excluir definitivamente</button>` : ''}
     </div>`);
   m.querySelectorAll('[data-a]').forEach(b => b.onclick = async () => {
     const a = b.dataset.a;
@@ -1507,13 +1508,23 @@ A senha atual continua valendo até a pessoa criar a nova.`)) return;
       if (!s) return; corpo.senha = s;
     }
     if (a === 'bloquear' && !confirm(`Bloquear ${p.nome}?\n\nA pessoa não consegue mais entrar. Os planos dela ficam guardados. Você pode reativar quando quiser.`)) return;
+    if (a === 'excluir') {
+      const r = prompt(`Excluir DEFINITIVAMENTE ${p.nome} (${p.email})?
+
+• O login e os dados pessoais são apagados — não dá para desfazer.
+• Os planos que a pessoa criou ficam guardados (aba “Dos participantes”).
+• O e-mail fica livre para um novo cadastro.
+
+Para confirmar, digite EXCLUIR:`);
+      if ((r || '').trim().toUpperCase() !== 'EXCLUIR') { if (r !== null) toast('Não excluído: a palavra não confere.'); return; }
+    }
     if (a === 'revogar' && !confirm(`Revogar o acesso de ${p.nome}?\n\nA pessoa é bloqueada e sai da lista (marque “Mostrar acessos revogados” para ver). Dá para reativar depois.`)) return;
     b.disabled = true;
     try {
       await chamarFuncao(corpo);
       m.fechar();
       if (a === 'senha') mostrarDadosDeAcesso(p.nome, p.email, corpo.senha);
-      else toast({ bloquear: 'Acesso bloqueado', reativar: 'Acesso reativado ✓', revogar: 'Acesso revogado', boas_vindas: 'E-mail enviado para ' + p.email + ' ✓' }[a], 4000);
+      else toast({ bloquear: 'Acesso bloqueado', reativar: 'Acesso reativado ✓', revogar: 'Acesso revogado', excluir: p.nome + ' foi excluído definitivamente', boas_vindas: 'E-mail enviado para ' + p.email + ' ✓' }[a], 4000);
       telaParticipantes();
     } catch (e) { toast(e.message, 6000); b.disabled = false; }
   });

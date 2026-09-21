@@ -239,6 +239,20 @@ Deno.serve(async (req) => {
       return resposta({ ok: true });
     }
 
+    // ---------------------------------------------------------- excluir definitivamente
+    // Só para quem JÁ foi revogado (dois passos, de propósito). Apaga o login
+    // e o perfil; os favoritos vão junto. Os planos que a pessoa criou ficam
+    // (autor vazio) na aba "Dos participantes", para o admin decidir.
+    if (acao === 'excluir') {
+      if (eu) return erro('Você não pode excluir a si mesmo.');
+      const { data: pp } = await adm.from('perfis').select('removido_em').eq('id', id).maybeSingle();
+      if (!pp?.removido_em) return erro('Revogue o acesso antes de excluir definitivamente.');
+      await auditar('excluiu definitivamente', id, `${p.nome} <${p.email}>`);
+      const { error } = await adm.auth.admin.deleteUser(id);
+      if (error) return erro('Não consegui excluir: ' + traduzir(error.message));
+      return resposta({ ok: true });
+    }
+
     return erro('Ação desconhecida: ' + acao);
   } catch (e) {
     return erro('Erro inesperado: ' + (e instanceof Error ? e.message : String(e)));
