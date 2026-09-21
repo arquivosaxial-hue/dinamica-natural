@@ -1,0 +1,14 @@
+# Fica no repositório, mas NÃO vai para o ar.
+/sql/
+/scripts/
+/supabase/
+/.github/
+/.claude/
+/backup/
+/.git/
+
+README.md
+BATIMENTO.md
+wrangler.toml
+.gitignore
+.assetsignore

@@ -1,0 +1,8 @@
+name = "dinamica-natural"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "./"
+# O site precisa só de: index.html, sw.js, manifest.json, logo.jpg e os
+# ícones. O .assetsignore tira do ar todo o resto (SQL, scripts,
+# workflows, função do Supabase) — lição do Trupe.
