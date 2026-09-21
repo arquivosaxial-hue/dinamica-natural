@@ -303,7 +303,7 @@ select.entrada{appearance:none;background-image:url("data:image/svg+xml,%3Csvg x
 //  Ao publicar mudança: suba APP_VERSION aqui E a VERSION no sw.js
 //  (o GitHub confere se as duas batem e fica vermelho se não).
 // ============================================================
-const APP_VERSION = 'v1.0.4';
+const APP_VERSION = 'v1.0.5';
 const SUPABASE_URL = 'https://tfmogwjmvuvrdxgrfopi.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_u8_1FLQ2ekhds_25aXNrww_WF1mkLB8';
 
@@ -1462,7 +1462,8 @@ function mostrarDadosDeAcesso(nome, email, senha, envio) {
   const aviso = !envio ? ''
     : envio.email_enviado
       ? `<div class="aviso-caixa" style="background:var(--verde-claro);color:var(--verde-esc)">📧 E-mail de boas-vindas enviado para <b>${esc(email)}</b>. A pessoa cria a própria senha pelo botão do e-mail. Se não chegar (olhe o spam), use a mensagem abaixo.</div>`
-      : `<div class="aviso-caixa">O e-mail de boas-vindas <b>não foi enviado</b>: ${esc(envio.email_erro || '')}<br>Envie a mensagem abaixo pelo WhatsApp.</div>`;
+      : `<div class="aviso-caixa">O e-mail de boas-vindas <b>não foi enviado</b>: ${esc(envio.email_erro
+          || ('email_enviado' in envio ? 'motivo desconhecido.' : 'a função “gerenciar-participante” no Supabase está desatualizada — publique a versão nova (Deploy).'))}<br>Envie a mensagem abaixo pelo WhatsApp.</div>`;
   const msg = `Olá, ${primeiroNome(nome)}! Seu acesso aos Planos de Atividades Imersivas da Dinâmica Natural está liberado.\n\nLink: ${link}\nE-mail: ${email}\nSenha: ${senha}\n\nNo primeiro acesso, troque a senha em “Minha conta”. Dica: no celular, abra o link e use “Adicionar à tela inicial”.`;
   const m = abrirModal(`<h2>Acesso criado ✓</h2>
     ${aviso}
