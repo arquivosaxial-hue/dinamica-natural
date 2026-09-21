@@ -150,7 +150,16 @@ Deno.serve(async (req) => {
       const { data, error } = await adm.auth.admin.createUser({
         email, password: senha, email_confirm: true, user_metadata: { nome },
       });
-      if (error || !data?.user) return erro(traduzir(error?.message || 'Falha ao criar.'));
+      if (error || !data?.user) {
+        // e-mail já usado: diz em que situação está a pessoa, em vez de só "já existe"
+        if (/already|exists/i.test(error?.message || '')) {
+          const { data: ja } = await adm.from('perfis').select('nome,ativo,removido_em').ilike('email', email).maybeSingle();
+          if (ja?.removido_em) return erro(`${ja.nome} já tem cadastro com este e-mail, mas o acesso foi revogado. Marque “Mostrar acessos revogados”, toque no nome e use “Reativar acesso”.`);
+          if (ja && !ja.ativo) return erro(`${ja.nome} já tem cadastro com este e-mail, mas está bloqueado. Toque no nome na lista e use “Reativar acesso”.`);
+          if (ja) return erro(`${ja.nome} já tem cadastro com este e-mail. Toque no nome na lista para editar ou reenviar o e-mail.`);
+        }
+        return erro(traduzir(error?.message || 'Falha ao criar.'));
+      }
       // o gatilho do banco já criou o perfil; completamos os dados
       const { error: eP } = await adm.from('perfis').upsert({
         id: data.user.id, email, nome, papel, ativo: true, pode_criar_planos: podeCriar, removido_em: null,
