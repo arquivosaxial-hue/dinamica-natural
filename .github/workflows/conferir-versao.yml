@@ -1,0 +1,51 @@
+name: Conferir versão
+
+# Lição dos outros apps: subir o index.html e esquecer o sw.js (ou o
+# contrário) deixava celulares presos na versão velha. Aqui o GitHub
+# compara os dois números a cada envio e fica VERMELHO se forem diferentes.
+#
+# Se a variável SITE_URL existir (Settings → Secrets and variables →
+# Actions → aba Variables), também confere se o site no ar já mostra a
+# versão nova — pega o caso "subiu mas não publicou".
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 11 * * 1'     # toda segunda, 8h em Brasília
+  workflow_dispatch:
+
+jobs:
+  versao:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: index.html e sw.js com a mesma versão
+        run: |
+          app=$(grep -oP "const APP_VERSION = '\K[^']+" index.html)
+          sw=$(grep -oP "const VERSION = '\K[^']+" sw.js)
+          echo "index.html: $app"
+          echo "sw.js:      $sw"
+          if [ -z "$app" ] || [ "$app" != "$sw" ]; then
+            echo "::error::Versões diferentes. Troque as duas para o mesmo número."
+            exit 1
+          fi
+          echo "APP=$app" >> "$GITHUB_ENV"
+
+      - name: Site publicado está na mesma versão
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          if [ -z "$SITE_URL" ]; then
+            echo "Variável SITE_URL não definida — pulando esta conferência."
+            exit 0
+          fi
+          # dá tempo do GitHub Pages publicar
+          if [ "${{ github.event_name }}" = "push" ]; then sleep 150; fi
+          no_ar=$(curl -s "$SITE_URL?nocache=$(date +%s)" | grep -oP "const APP_VERSION = '\K[^']+" || true)
+          echo "No ar: ${no_ar:-?} — Esperado: $APP"
+          if [ "$no_ar" != "$APP" ]; then
+            echo "::error::O site no ar não está na versão do repositório."
+            exit 1
+          fi

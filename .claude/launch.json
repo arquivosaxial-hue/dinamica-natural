@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dinamica-natural",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5610"],
+      "port": 5610
+    }
+  ]
+}

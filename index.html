@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E0F0E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Dinâmica Natural">
+<title>Dinâmica Natural — Planos de Atividades Imersivas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --verde:#2BA51F; --verde-esc:#1E7D15; --verde-claro:#DDEFD9;
+  --amarelo:#EEE13D; --preto:#0E0F0E;
+  --fundo:#E7F1E9; --card:#FFFFFF; --borda:#D3E1D6;
+  --texto:#1D2A22; --suave:#5B6B61; --titulo:#3C544A;
+  --erro:#B42318; --erro-fundo:#FDECEA; --aviso:#7A5E00; --aviso-fundo:#FFF7D1;
+  --raio:14px; --sombra:0 1px 2px rgba(14,15,14,.06),0 4px 14px rgba(14,15,14,.06);
+  --topo:56px; --abas:62px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:'Nunito Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--fundo);
+  color:var(--texto);font-size:16px;line-height:1.5;-webkit-text-size-adjust:100%;min-height:100vh}
+h1,h2,h3,.jost{font-family:'Jost','Century Gothic',sans-serif;font-weight:500;color:var(--titulo);line-height:1.2}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--verde-esc)}
+.oculto{display:none!important}
+svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* ---------- carregamento / erro ---------- */
+#boot{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--fundo);z-index:50}
+.giro{width:40px;height:40px;border:4px solid var(--borda);border-top-color:var(--verde);border-radius:50%;animation:giro .9s linear infinite}
+@keyframes giro{to{transform:rotate(360deg)}}
+#erro-global{display:none;position:fixed;inset:0;background:var(--erro-fundo);z-index:100;padding:20px;overflow:auto;
+  font-family:monospace;font-size:13px;color:var(--erro);white-space:pre-wrap;word-break:break-word}
+
+/* ---------- login ---------- */
+.tela-cheia{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.cartao-login{width:100%;max-width:440px;text-align:center}
+.cartao-login .logo{width:170px;max-width:52%;display:block;margin:0 auto 22px}
+.cartao-login h1{font-size:clamp(22px,6vw,28px);margin:0 0 12px}
+.cartao-login .lema{font-family:'Jost',sans-serif;font-size:16px;color:#222;margin:0 auto 26px;max-width:360px}
+.avatar-grande{width:84px;height:84px;border-radius:50%;border:4px solid #444;margin:0 auto 22px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;background:transparent}
+.avatar-grande svg{width:70px;height:70px;fill:#4a4a4a;stroke:none;margin-bottom:-6px}
+.campo-pilula{position:relative;margin:0 auto 14px;max-width:340px}
+.campo-pilula input{width:100%;height:50px;border:3px solid #4a4a4a;border-radius:26px;background:rgba(255,255,255,.55);
+  padding:0 20px;font-size:16px;outline:none;transition:border-color .15s,background .15s}
+.campo-pilula input:focus{border-color:var(--verde);background:#fff}
+.campo-pilula .olho{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:0;color:#555;padding:8px;display:flex}
+.link-sutil{background:none;border:0;color:#555;font-size:14px;text-decoration:underline;text-underline-offset:3px;padding:6px}
+.btn-login{display:block;margin:22px auto 0;min-width:200px;height:52px;border:0;border-radius:26px;background:var(--verde);color:#fff;
+  font-family:'Jost',sans-serif;font-weight:600;font-size:22px;box-shadow:0 3px 0 var(--verde-esc)}
+.btn-login:active{transform:translateY(2px);box-shadow:0 1px 0 var(--verde-esc)}
+.btn-login:disabled{opacity:.6}
+.versao{margin-top:28px;font-size:12px;color:var(--suave)}
+
+/* ---------- casca do app ---------- */
+.topo{position:sticky;top:0;z-index:20;height:calc(var(--topo) + env(safe-area-inset-top));padding:env(safe-area-inset-top) 8px 0;
+  background:var(--preto);color:#fff;display:flex;align-items:center;gap:6px}
+.topo h1{color:#fff;font-size:18px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topo .btn-icone{color:#fff}
+.topo .marca{height:36px;width:auto;border-radius:4px}
+.btn-icone{background:none;border:0;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--texto)}
+.btn-icone:hover{background:rgba(127,127,127,.15)}
+main{max-width:1040px;margin:0 auto;padding:18px 16px calc(var(--abas) + 28px + env(safe-area-inset-bottom))}
+.abas{position:fixed;left:0;right:0;bottom:0;z-index:20;background:#fff;border-top:1px solid var(--borda);
+  display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+.abas a{flex:1;max-width:130px;height:var(--abas);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-size:11.5px;font-weight:700;color:var(--suave);text-decoration:none}
+.abas a.ativa{color:var(--verde-esc)}
+.abas a.ativa svg{stroke:var(--verde-esc)}
+#aviso-versao{position:fixed;top:calc(var(--topo) + env(safe-area-inset-top) + 8px);left:50%;transform:translateX(-50%);z-index:40;
+  background:var(--amarelo);color:#111;border-radius:12px;padding:10px 12px 10px 16px;display:flex;gap:12px;align-items:center;
+  box-shadow:var(--sombra);font-weight:700;font-size:14px;width:max-content;max-width:calc(100% - 32px)}
+
+/* ---------- componentes ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:24px;
+  border:2px solid transparent;font-weight:700;font-size:15px;text-decoration:none;white-space:nowrap}
+.btn svg.i{width:19px;height:19px}
+.btn-verde{background:var(--verde);color:#fff}
+.btn-verde:hover{background:var(--verde-esc)}
+.btn-contorno{background:#fff;border-color:var(--borda);color:var(--texto)}
+.btn-contorno:hover{border-color:var(--verde)}
+.btn-perigo{background:#fff;border-color:#F1C4BF;color:var(--erro)}
+.btn-escuro{background:var(--preto);color:#fff}
+.btn-pequeno{min-height:36px;padding:0 12px;font-size:14px}
+.btn:disabled{opacity:.55;cursor:default}
+.linha-botoes{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.cartao{background:var(--card);border-radius:var(--raio);box-shadow:var(--sombra);padding:18px}
+.saudacao h2{font-size:26px;margin:4px 0 4px}
+.saudacao p{margin:0 0 20px;color:var(--suave)}
+.grade-atalhos{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:720px){.grade-atalhos{grid-template-columns:repeat(3,1fr)}}
+.atalho{background:#fff;border-radius:var(--raio);box-shadow:var(--sombra);padding:16px;text-decoration:none;color:var(--texto);
+  display:flex;flex-direction:column;gap:10px;min-height:128px;border:2px solid transparent;transition:border-color .15s}
+.atalho:hover{border-color:var(--verde)}
+.atalho .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--verde-claro);color:var(--verde-esc)}
+.atalho.destaque .ic{background:var(--amarelo);color:#111}
+.atalho.escuro{background:var(--preto);color:#fff}
+.atalho.escuro .ic{background:#2a2b2a;color:var(--amarelo)}
+.atalho.escuro small{color:#bbb}
+.atalho strong{font-family:'Jost',sans-serif;font-weight:600;font-size:17px;line-height:1.2}
+.atalho small{color:var(--suave);font-size:13px;line-height:1.35}
+.titulo-secao{font-size:19px;margin:28px 0 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+
+.grade-cards{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:620px){.grade-cards{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:960px){.grade-cards{grid-template-columns:repeat(3,1fr)}}
+.card-item{background:#fff;border-radius:var(--raio);box-shadow:var(--sombra);overflow:hidden;display:flex;flex-direction:column;cursor:pointer;position:relative;border:2px solid transparent}
+.card-item:hover{border-color:var(--verde)}
+.card-item .capa{height:140px;background:var(--preto) center/cover no-repeat;display:flex;align-items:center;justify-content:center}
+.card-item .capa.vazia svg{width:46px;height:46px;stroke:var(--amarelo);opacity:.9}
+.card-item .corpo{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.card-item h3{font-size:17px;margin:0;font-weight:600;color:var(--texto)}
+.card-item .tipo{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--verde-esc)}
+.card-item .fav{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.92);border:0;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center}
+.fav svg{width:20px;height:20px}
+.fav.on svg{fill:var(--amarelo);stroke:#8a7d00}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12.5px;background:var(--fundo);color:var(--titulo);border-radius:20px;padding:2px 10px;font-weight:600}
+.selo{display:inline-block;font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 8px;text-transform:uppercase;letter-spacing:.04em}
+.selo-rascunho{background:var(--aviso-fundo);color:var(--aviso)}
+.selo-finalizado{background:#E3EEFB;color:#1E4E8C}
+.selo-publicado{background:var(--verde-claro);color:var(--verde-esc)}
+.selo-bloqueado{background:var(--erro-fundo);color:var(--erro)}
+.selo-admin{background:var(--preto);color:var(--amarelo)}
+.vazio{text-align:center;color:var(--suave);padding:40px 16px}
+.vazio svg{width:44px;height:44px;opacity:.5;margin-bottom:8px}
+
+/* formulários */
+.campo{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.campo label{font-weight:700;font-size:14.5px}
+.campo .dica{font-size:13px;color:var(--suave);margin-top:-4px}
+.entrada{width:100%;min-height:46px;border:2px solid var(--borda);border-radius:12px;padding:10px 14px;background:#fff;font-size:16px;outline:none}
+.entrada:focus{border-color:var(--verde)}
+textarea.entrada{min-height:92px;resize:vertical;line-height:1.5}
+select.entrada{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235B6B61' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:40px}
+.grade-2{display:grid;grid-template-columns:1fr;gap:0 14px}
+@media(min-width:620px){.grade-2{grid-template-columns:1fr 1fr}}
+.check{display:flex;gap:10px;align-items:center;font-weight:600;margin-bottom:12px}
+.check input{width:20px;height:20px;accent-color:var(--verde)}
+
+/* busca */
+.barra-busca{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.barra-busca .caixa{flex:1;position:relative}
+.barra-busca .caixa svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--suave);width:20px;height:20px}
+.barra-busca .caixa input{padding-left:44px;border-radius:26px}
+.painel-filtros{background:#fff;border-radius:var(--raio);padding:14px;margin-bottom:14px;box-shadow:var(--sombra)}
+.segmento{display:inline-flex;background:#fff;border-radius:24px;padding:4px;box-shadow:var(--sombra);margin-bottom:14px;flex-wrap:wrap}
+.segmento button{border:0;background:none;border-radius:20px;padding:7px 14px;font-weight:700;font-size:14px;color:var(--suave)}
+.segmento button.on{background:var(--preto);color:#fff}
+.contagem{font-size:14px;color:var(--suave);margin:4px 0 12px}
+
+/* visualização */
+.ver-cabeca h1{font-size:clamp(24px,5vw,32px);margin:6px 0 10px;color:var(--texto);font-weight:600}
+.galeria{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px 16px;padding:0 16px}
+.galeria img{height:220px;max-width:88%;object-fit:cover;border-radius:var(--raio);scroll-snap-align:start;background:#ddd;cursor:zoom-in}
+@media(min-width:720px){.galeria img{height:280px}}
+.barra-acoes{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px}
+.secao{background:#fff;border-radius:var(--raio);padding:16px 18px;margin-bottom:12px;box-shadow:var(--sombra);break-inside:avoid}
+.secao h2{font-size:17px;margin:0 0 8px;color:var(--verde-esc);font-weight:600;display:flex;align-items:center;gap:8px}
+.secao .txt{white-space:pre-line;overflow-wrap:anywhere}
+.secao.alerta{background:var(--aviso-fundo)}
+.secao.alerta h2{color:var(--aviso)}
+.ficha{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.ficha div{background:#fff;border-radius:12px;padding:10px 12px;box-shadow:var(--sombra)}
+.ficha small{display:block;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--suave)}
+.ficha b{font-weight:700}
+.rodape-item{font-size:13px;color:var(--suave);margin-top:16px}
+
+/* editor */
+.miniaturas{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.mini{position:relative;width:96px;height:96px;border-radius:12px;overflow:hidden;background:#ddd}
+.mini img{width:100%;height:100%;object-fit:cover}
+.mini button{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;display:flex;align-items:center;justify-content:center}
+.mini button svg{width:16px;height:16px}
+.lista-simples{display:flex;flex-direction:column;gap:8px}
+.linha-item{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid var(--borda);border-radius:12px;padding:8px 10px 8px 14px}
+.linha-item .t{flex:1;min-width:0}
+.linha-item .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linha-item .t small{color:var(--suave)}
+.barra-salvar{position:sticky;bottom:calc(var(--abas) + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--fundo) 70%,transparent);padding:16px 0 10px;margin-top:10px;z-index:5}
+
+/* tabelas admin */
+.tabela{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--raio);overflow:hidden;box-shadow:var(--sombra);font-size:14px}
+.tabela th,.tabela td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--borda);vertical-align:top}
+.tabela th{background:#F4F8F5;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--suave)}
+.rolagem-x{overflow-x:auto}
+
+/* modal e toast */
+.fundo-modal{position:fixed;inset:0;background:rgba(10,12,10,.55);z-index:60;display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:620px){.fundo-modal{align-items:center}}
+.modal{background:#fff;width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))}
+@media(min-width:620px){.modal{border-radius:18px}}
+.modal h2{margin:0 0 14px;font-size:21px}
+.modal .fechar{float:right;margin:-8px -8px 0 0}
+#toast{position:fixed;left:50%;bottom:calc(var(--abas) + 18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+  background:#1c1d1c;color:#fff;padding:12px 18px;border-radius:12px;font-size:14.5px;opacity:0;pointer-events:none;transition:.25s;z-index:90;width:max-content;max-width:min(520px,calc(100vw - 32px));text-align:center}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.visor{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:80;display:flex;align-items:center;justify-content:center;padding:16px}
+.visor img{max-width:100%;max-height:100%;object-fit:contain}
+.aviso-caixa{background:var(--aviso-fundo);color:var(--aviso);border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:14px}
+.so-impressao{display:none}
+
+@media print{
+  .topo,.abas,.barra-acoes,#aviso-versao,#toast,.nao-imprimir{display:none!important}
+  body{background:#fff}
+  main{padding:0;max-width:none}
+  .secao,.ficha div{box-shadow:none;border:1px solid #ccc}
+  .so-impressao{display:flex;align-items:center;gap:14px;margin-bottom:12px;border-bottom:2px solid #000;padding-bottom:10px}
+  .so-impressao img{height:60px}
+  .galeria{overflow:visible;flex-wrap:wrap;margin:0 0 12px;padding:0}
+  .galeria img{height:160px}
+}
+</style>
+</head>
+<body>
+
+<div id="boot"><div class="giro"></div><div class="jost" style="color:var(--titulo)">Carregando…</div></div>
+<div id="erro-global"></div>
+
+<!-- ======================= LOGIN ======================= -->
+<section id="tela-login" class="tela-cheia oculto">
+  <div class="cartao-login">
+    <img class="logo" src="logo.jpg" alt="Dinâmica Natural">
+    <h1>Planos de Atividades Imersivas</h1>
+    <p class="lema">Conexão entre pessoas e a natureza, por meio da ciência, da experiência e da ludicidade.</p>
+    <div class="avatar-grande" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.2"/><path d="M3.5 24c0-5.2 3.8-9 8.5-9s8.5 3.8 8.5 9z"/></svg></div>
+    <form id="form-login" autocomplete="on" onsubmit="event.preventDefault();entrar()">
+      <div class="campo-pilula"><input id="login-email" type="email" inputmode="email" autocomplete="username" placeholder="E-mail" aria-label="E-mail" required></div>
+      <div class="campo-pilula">
+        <input id="login-senha" type="password" autocomplete="current-password" placeholder="Senha" aria-label="Senha" required>
+        <button type="button" class="olho" onclick="alternarOlho('login-senha',this)" aria-label="Mostrar senha"></button>
+      </div>
+      <button type="button" class="link-sutil" onclick="esqueciSenha()">Esqueci minha senha</button>
+      <button id="btn-entrar" class="btn-login" type="submit">Entrar</button>
+    </form>
+    <div class="versao">Dinâmica Natural · <span class="app-versao"></span></div>
+  </div>
+</section>
+
+<!-- ======================= NOVA SENHA (link do e-mail) ======================= -->
+<section id="tela-senha" class="tela-cheia oculto">
+  <div class="cartao-login">
+    <img class="logo" src="logo.jpg" alt="Dinâmica Natural" style="width:120px">
+    <h1>Nova senha</h1>
+    <p class="lema">Escolha uma senha com pelo menos 8 caracteres.</p>
+    <form onsubmit="event.preventDefault();salvarNovaSenha()">
+      <div class="campo-pilula"><input id="nova-senha" type="password" autocomplete="new-password" placeholder="Nova senha" required></div>
+      <div class="campo-pilula"><input id="nova-senha2" type="password" autocomplete="new-password" placeholder="Repita a senha" required></div>
+      <button id="btn-nova-senha" class="btn-login" type="submit" style="font-size:19px">Salvar e entrar</button>
+    </form>
+  </div>
+</section>
+
+<!-- ======================= APP ======================= -->
+<div id="tela-app" class="oculto">
+  <header class="topo">
+    <button class="btn-icone" id="btn-voltar" onclick="voltar()" aria-label="Voltar"></button>
+    <img class="marca" src="icon-192.png" alt="" id="topo-marca">
+    <h1 id="topo-titulo">Início</h1>
+    <button class="btn-icone" onclick="ir('conta')" aria-label="Minha conta" id="btn-conta"></button>
+  </header>
+  <main id="conteudo"></main>
+  <nav class="abas" id="abas"></nav>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="aviso-versao" class="oculto">Nova versão disponível <button class="btn btn-escuro btn-pequeno" onclick="aplicarAtualizacao()">Atualizar</button></div>
+
+<script>
+// ============================================================
+//  CONFIGURAÇÃO
+// ------------------------------------------------------------
+//  Ao publicar mudança: suba APP_VERSION aqui E a VERSION no sw.js
+//  (o GitHub confere se as duas batem e fica vermelho se não).
+// ============================================================
+const APP_VERSION = 'v1.0.0';
+const SUPABASE_URL = 'https://tfmogwjmvuvrdxgrfopi.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_u8_1FLQ2ekhds_25aXNrww_WF1mkLB8';
+
+// ---------- erros globais aparecem na tela (ajuda a achar bug no celular) ----------
+window.addEventListener('error', e => {
+  if (!e.error && !e.message) return;
+  const el = document.getElementById('erro-global');
+  el.style.display = 'block';
+  el.textContent = '⚠️ Erro no app\n\n' + ((e.error && e.error.stack) || e.message) + '\n\n' + (e.filename || '') + ':' + (e.lineno || '');
+  document.getElementById('boot').classList.add('oculto');
+});
+window.addEventListener('unhandledrejection', e => {
+  console.error('Promise rejeitada:', e.reason);
+  toast('Algo deu errado: ' + String((e.reason && e.reason.message) || e.reason || '').slice(0, 120));
+});
+
+// ============================================================
+//  SERVICE WORKER (instalar no celular + aviso de versão nova)
+// ------------------------------------------------------------
+//  Diferente do Frota: NÃO recarrega sozinho. Recarregar no meio de
+//  um plano sendo escrito apagava o texto. Mostra um aviso e a pessoa
+//  escolhe a hora. Na tela de login (nada a perder) aplica direto.
+// ============================================================
+let swEsperando = null;
+if ('serviceWorker' in navigator) {
+  let recarregou = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (recarregou) return; recarregou = true; location.reload();
+  });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      const avisar = w => {
+        swEsperando = w;
+        if (!S.perfil) aplicarAtualizacao();
+        else document.getElementById('aviso-versao').classList.remove('oculto');
+      };
+      if (reg.waiting && navigator.serviceWorker.controller) avisar(reg.waiting);
+      reg.addEventListener('updatefound', () => {
+        const novo = reg.installing; if (!novo) return;
+        novo.addEventListener('statechange', () => {
+          if (novo.state === 'installed' && navigator.serviceWorker.controller) avisar(novo);
+        });
+      });
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+      window.__swReg = reg;
+    }).catch(err => console.warn('SW falhou:', err));
+  });
+}
+function aplicarAtualizacao() {
+  if (S.sujo && !confirm('Você tem alterações não salvas neste formulário. Elas ficam guardadas neste aparelho, mas é melhor salvar antes. Atualizar mesmo assim?')) return;
+  if (swEsperando) swEsperando.postMessage('SKIP_WAITING'); else location.reload();
+}
+
+// ============================================================
+//  ÍCONES (traços do Lucide embutidos)
+// ============================================================
+const ICONES = {
+  voltar:'<polyline points="15 18 9 12 15 6"/>',
+  inicio:'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  folha:'<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>',
+  frasco:'<path d="M9 3h6"/><path d="M10 3v6.5L4.6 18.2A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.5 15h9"/>',
+  busca:'<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  estrela:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+  mais:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  pasta:'<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>',
+  escudo:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  usuario:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  usuarios:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  sair:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+  editar:'<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  lixo:'<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  copiar:'<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  imprimir:'<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+  imagem:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>',
+  x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  olho:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  olhoFechado:'<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/>',
+  filtro:'<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
+  etiqueta:'<path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l8.59-8.59a1 1 0 0 0 0-1.41z"/><circle cx="7" cy="7" r="1.5"/>',
+  config:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  historico:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+  alerta:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  cima:'<polyline points="18 15 12 9 6 15"/>',
+  baixo:'<polyline points="6 9 12 15 18 9"/>',
+  check:'<polyline points="20 6 9 17 4 12"/>',
+  lixeira:'<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
+  cadeado:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  compartilhar:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>',
+};
+const ic = (n, extra = '') => `<svg class="i" viewBox="0 0 24 24" ${extra}>${ICONES[n] || ''}</svg>`;
+
+// ============================================================
+//  UTILITÁRIOS
+// ============================================================
+const $ = id => document.getElementById(id);
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function normalizar(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+function dataBR(d) { if (!d) return ''; const x = new Date(d); return x.toLocaleDateString('pt-BR') + ' ' + x.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+function primeiroNome(n) { return String(n || '').trim().split(/\s+/)[0] || ''; }
+let tToast;
+function toast(msg, ms = 3000) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(tToast); tToast = setTimeout(() => t.classList.remove('on'), ms);
+}
+function traduzirErro(e) {
+  const m = String((e && (e.message || e.error_description)) || e || '');
+  if (/Invalid login credentials/i.test(m)) return 'E-mail ou senha incorretos.';
+  if (/banned/i.test(m)) return 'Seu acesso está bloqueado. Fale com a Dinâmica Natural.';
+  if (/Email not confirmed/i.test(m)) return 'Este e-mail ainda não foi confirmado.';
+  if (/rate limit|too many|seconds/i.test(m)) return 'Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.';
+  if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return 'Sem conexão com a internet. Confira e tente de novo.';
+  if (/row-level security|permission denied|violates/i.test(m)) return 'Você não tem permissão para fazer isto.';
+  if (/JWT|token.*expired|session/i.test(m)) return 'Sua sessão expirou. Entre novamente.';
+  if (/should be different/i.test(m)) return 'A nova senha precisa ser diferente da atual.';
+  if (/Password should|weak|pwned/i.test(m)) return 'Senha fraca. Use pelo menos 8 caracteres, misturando letras e números.';
+  return m || 'Erro desconhecido.';
+}
+function alternarOlho(idCampo, btn) {
+  const c = $(idCampo); const mostrar = c.type === 'password';
+  c.type = mostrar ? 'text' : 'password';
+  btn.innerHTML = ic(mostrar ? 'olhoFechado' : 'olho');
+  btn.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
+}
+function autoAltura(t) { t.style.height = 'auto'; t.style.height = (t.scrollHeight + 4) + 'px'; }
+function lsGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+function abrirModal(html, aoFechar) {
+  const f = document.createElement('div');
+  f.className = 'fundo-modal';
+  f.innerHTML = `<div class="modal" role="dialog" aria-modal="true"><button class="btn-icone fechar" aria-label="Fechar">${ic('x')}</button>${html}</div>`;
+  const fechar = () => { f.remove(); aoFechar && aoFechar(); };
+  f.querySelector('.fechar').onclick = fechar;
+  f.addEventListener('click', e => { if (e.target === f) fechar(); });
+  document.body.appendChild(f);
+  f.fechar = fechar;
+  return f;
+}
+function verImagem(url) {
+  const v = document.createElement('div'); v.className = 'visor';
+  v.innerHTML = `<img src="${esc(url)}" alt="">`;
+  v.onclick = () => v.remove();
+  document.body.appendChild(v);
+}
+
+// Reduz a foto antes de subir (celular tira 4–8 MB; aqui vira ~300 KB).
+async function comprimirImagem(file, max = 1600, qualidade = 0.82) {
+  let fonte;
+  try { fonte = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch (e) {
+    fonte = await new Promise((ok, falha) => {
+      const img = new Image(); img.onload = () => ok(img); img.onerror = () => falha(new Error('Imagem inválida'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+  const w = fonte.width, h = fonte.height, k = Math.min(1, max / Math.max(w, h));
+  const c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+  c.getContext('2d').drawImage(fonte, 0, 0, c.width, c.height);
+  return await new Promise(ok => c.toBlob(ok, 'image/jpeg', qualidade));
+}
+
+// ============================================================
+//  ESTRUTURA DOS CONTEÚDOS
+// ============================================================
+const META = [
+  ['faixa_etaria', 'Faixa etária'],
+  ['duracao', 'Duração'],
+  ['local', 'Local / espaço'],
+  ['area', 'Área'],
+  ['tema', 'Tema'],
+  ['tipo_atividade', 'Tipo de atividade'],
+];
+const TIPOS_CATEGORIA = {
+  faixa_etaria: 'Faixas etárias', area: 'Áreas', tema: 'Temas',
+  duracao: 'Durações', local: 'Locais / espaços', tipo_atividade: 'Tipos de atividade',
+};
+const CAMPOS_PLANO = [
+  ['objetivos', 'Objetivos', 'O que se pretende desenvolver ou possibilitar por meio da experiência.'],
+  ['materiais', 'Materiais', 'Materiais naturais, equipamentos e demais recursos necessários.'],
+  ['preparacao', 'Preparação', 'Organização prévia do espaço e dos materiais.'],
+  ['desenvolvimento', 'Desenvolvimento', 'Sequência principal da atividade.'],
+  ['perguntas', 'Perguntas investigativas', 'Questões que estimulem observação, curiosidade, comparação e investigação.'],
+  ['observar', 'O que observar', 'Aspectos, fenômenos e relações que podem ser percebidos durante a atividade.'],
+  ['exploracao', 'Possibilidades de exploração', 'Variações, aprofundamentos e desdobramentos.'],
+  ['registro', 'Registro', 'Fotografias, desenhos, anotações, observações ou outros registros.'],
+  ['fechamento', 'Fechamento', 'Síntese e conversa final sobre a experiência.'],
+];
+const CAMPOS_EXP = [
+  ['objetivo', 'Objetivo', 'O que a experiência pretende mostrar ou possibilitar.'],
+  ['materiais', 'Materiais', 'O que é preciso separar.'],
+  ['procedimento', 'Procedimento', 'Passo a passo da experiência.'],
+  ['fenomeno', 'Fenômeno ou conceito envolvido', 'O que está acontecendo, do ponto de vista da ciência.'],
+  ['perguntas', 'Perguntas para investigação', 'Questões para conduzir a observação.'],
+  ['seguranca', 'Cuidados e segurança', 'Quando houver: riscos, supervisão, materiais que exigem atenção.'],
+];
+const STATUS_ROTULO = { rascunho: 'Rascunho', finalizado: 'Finalizado', publicado: 'Publicado' };
+const selo = st => `<span class="selo selo-${esc(st)}">${esc(STATUS_ROTULO[st] || st)}</span>`;
+
+// ============================================================
+//  ESTADO
+// ============================================================
+const S = {
+  perfil: null, cats: {}, config: {}, favs: new Set(),
+  cache: {}, filtros: {}, sujo: false, hashEditor: null, ignorarHash: false,
+  recuperando: false, navegou: 0, ed: null,
+};
+const souAdmin = () => !!(S.perfil && S.perfil.papel === 'admin');
+const possoCriar = () => !!(S.perfil && (souAdmin() || S.perfil.pode_criar_planos));
+
+let db = null;
+const configurado = !/COLE_AQUI/.test(SUPABASE_URL + SUPABASE_KEY);
+if (configurado && window.supabase) db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ============================================================
+//  LOGIN / SESSÃO
+// ============================================================
+function mostrar(tela) {
+  ['tela-login', 'tela-senha', 'tela-app'].forEach(t => $(t).classList.toggle('oculto', t !== tela));
+  $('boot').classList.add('oculto');
+  window.scrollTo(0, 0);
+}
+function mostrarLogin(msg) {
+  S.perfil = null; S.cache = {}; S.favs = new Set();
+  mostrar('tela-login');
+  if (msg) setTimeout(() => toast(msg, 5000), 200);
+}
+
+async function entrar() {
+  const email = $('login-email').value.trim();
+  const senha = $('login-senha').value;
+  if (!email || !senha) { toast('Preencha e-mail e senha.'); return; }
+  const b = $('btn-entrar'); b.disabled = true; b.textContent = 'Entrando…';
+  const { error } = await db.auth.signInWithPassword({ email, password: senha });
+  b.disabled = false; b.textContent = 'Entrar';
+  if (error) { toast(traduzirErro(error), 5000); return; }
+  $('login-senha').value = '';
+  await iniciar();
+}
+
+async function esqueciSenha() {
+  const email = $('login-email').value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Digite seu e-mail no campo acima e toque de novo em “Esqueci minha senha”.', 5000); return; }
+  if (!confirm(`Enviar um link para criar nova senha para:\n\n${email}\n\nConfira se o e-mail está certo.`)) return;
+  const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  if (error) { toast(traduzirErro(error), 5000); return; }
+  // Mesma mensagem exista ou não o e-mail: não revela quem tem cadastro.
+  toast('Se este e-mail estiver cadastrado, você vai receber o link em alguns minutos. Olhe também o spam.', 6000);
+}
+
+async function salvarNovaSenha() {
+  const a = $('nova-senha').value, b = $('nova-senha2').value;
+  if (a.length < 8) { toast('A senha precisa ter pelo menos 8 caracteres.'); return; }
+  if (a !== b) { toast('As duas senhas não são iguais.'); return; }
+  const btn = $('btn-nova-senha'); btn.disabled = true;
+  const { error } = await db.auth.updateUser({ password: a });
+  btn.disabled = false;
+  if (error) { toast(traduzirErro(error), 5000); return; }
+  S.recuperando = false;
+  $('nova-senha').value = $('nova-senha2').value = '';
+  history.replaceState(null, '', location.pathname);
+  toast('Senha salva ✓');
+  await iniciar();
+}
+
+// Saída intencional: zera o perfil ANTES do signOut para o evento
+// SIGNED_OUT não mostrar "sua sessão terminou" por cima da mensagem certa.
+async function deslogar(msg) {
+  S.perfil = null; S.sujo = false;
+  try { await db.auth.signOut(); } catch (e) {}
+  history.replaceState(null, '', location.pathname);
+  mostrarLogin(msg);
+}
+async function sair() {
+  if (S.sujo && !confirm('Há alterações não salvas. Sair mesmo assim?')) return;
+  await deslogar();
+}
+
+async function iniciar() {
+  const { data: { user } } = await db.auth.getUser();
+  if (!user) { mostrarLogin(); return; }
+  const { data: perfil, error } = await db.from('perfis').select('*').eq('id', user.id).maybeSingle();
+  if (error && !perfil) {
+    mostrarLogin('Não consegui carregar seu perfil: ' + traduzirErro(error));
+    return;
+  }
+  if (!perfil) { await deslogar('Seu acesso ainda não foi liberado. Fale com a Dinâmica Natural.'); return; }
+  if (!perfil.ativo || perfil.removido_em) { await deslogar('Seu acesso está bloqueado. Fale com a Dinâmica Natural.'); return; }
+  // tira o token do link de e-mail da barra de endereço
+  if (/access_token=|type=recovery/.test(location.hash)) history.replaceState(null, '', location.pathname);
+  S.perfil = perfil;
+  await Promise.all([carregarCategorias(), carregarConfig(), carregarFavoritos()]);
+  montarCasca();
+  mostrar('tela-app');
+  rotear();
+}
+
+// Revalida o acesso a cada 5 min e ao voltar para o app.
+// Lição do Trupe: tropeço de rede NÃO é bloqueio — só expulsa se o
+// banco disser que o perfil foi bloqueado ou a sessão acabou de fato.
+async function revalidarAcesso() {
+  if (!S.perfil) return;
+  const { data, error } = await db.from('perfis').select('papel,ativo,removido_em,pode_criar_planos,nome').eq('id', S.perfil.id).maybeSingle();
+  if (error) {
+    const { data: s } = await db.auth.getSession();
+    if (s && s.session) return;
+    mostrarLogin('Sua sessão expirou. Entre novamente.'); return;
+  }
+  if (!data || !data.ativo || data.removido_em) { await deslogar('Seu acesso a este aplicativo foi encerrado.'); return; }
+  const mudouPapel = data.papel !== S.perfil.papel || data.pode_criar_planos !== S.perfil.pode_criar_planos;
+  Object.assign(S.perfil, data);
+  if (mudouPapel) { montarCasca(); if (!S.sujo) rotear(); }
+}
+setInterval(revalidarAcesso, 5 * 60 * 1000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !S.perfil) return;
+  revalidarAcesso();
+  // dados com mais de 5 min são recarregados na próxima tela
+  const agora = Date.now();
+  Object.keys(S.cache).forEach(k => { if (S.cache[k] && agora - S.cache[k].em > 5 * 60 * 1000) delete S.cache[k]; });
+});
+window.addEventListener('beforeunload', e => { if (S.sujo) { e.preventDefault(); e.returnValue = ''; } });
+
+// ============================================================
+//  CARREGAMENTO DE DADOS
+// ============================================================
+async function carregarCategorias() {
+  const { data } = await db.from('categorias').select('*').order('ordem').order('nome');
+  S.catsTodas = data || [];
+  S.cats = {};
+  Object.keys(TIPOS_CATEGORIA).forEach(t => S.cats[t] = []);
+  S.catsTodas.filter(c => c.ativo).forEach(c => (S.cats[c.tipo] = S.cats[c.tipo] || []).push(c.nome));
+}
+async function carregarConfig() {
+  const { data } = await db.from('configuracoes').select('*');
+  S.config = {}; (data || []).forEach(c => S.config[c.chave] = c.valor);
+}
+async function carregarFavoritos() {
+  const { data } = await db.from('favoritos').select('tipo,item_id');
+  S.favs = new Set((data || []).map(f => f.tipo + ':' + f.item_id));
+}
+async function comCache(chave, buscar, forcar) {
+  if (!forcar && S.cache[chave]) return S.cache[chave].dados;
+  const { data, error } = await buscar();
+  if (error) throw error;
+  S.cache[chave] = { dados: data || [], em: Date.now() };
+  return data || [];
+}
+const invalidar = (...ks) => ks.length ? ks.forEach(k => delete S.cache[k]) : (S.cache = {});
+
+const planosOficiais = f => comCache('planos', () => db.from('planos').select('*')
+  .eq('oficial', true).eq('status', 'publicado').is('excluido_em', null).order('titulo'), f);
+const experienciasPub = f => comCache('exps', () => db.from('experiencias').select('*')
+  .eq('status', 'publicado').is('excluido_em', null).order('titulo'), f);
+const meusPlanos = f => comCache('meus', () => db.from('planos').select('*')
+  .eq('autor_id', S.perfil.id).eq('oficial', false).is('excluido_em', null).order('atualizado_em', { ascending: false }), f);
+
+async function buscarItem(tipo, id) {
+  const tabela = tipo === 'plano' ? 'planos' : 'experiencias';
+  const { data, error } = await db.from(tabela).select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ============================================================
+//  FAVORITOS
+// ============================================================
+async function alternarFav(ev, tipo, id) {
+  if (ev) ev.stopPropagation();
+  const k = tipo + ':' + id, era = S.favs.has(k);
+  era ? S.favs.delete(k) : S.favs.add(k);
+  document.querySelectorAll(`[data-fav="${k}"]`).forEach(b => {
+    b.classList.toggle('on', !era);
+    b.setAttribute('aria-label', !era ? 'Remover dos favoritos' : 'Salvar nos favoritos');
+    const t = b.querySelector('.rot'); if (t) t.textContent = !era ? 'Salvo' : 'Salvar';
+  });
+  const { error } = era
+    ? await db.from('favoritos').delete().eq('usuario_id', S.perfil.id).eq('tipo', tipo).eq('item_id', id)
+    : await db.from('favoritos').insert({ usuario_id: S.perfil.id, tipo, item_id: id });
+  if (error) {
+    era ? S.favs.add(k) : S.favs.delete(k);
+    toast('Não consegui salvar o favorito: ' + traduzirErro(error));
+    rotear(); return;
+  }
+  toast(era ? 'Removido dos favoritos' : 'Salvo nos favoritos ★');
+}
+
+// ============================================================
+//  NAVEGAÇÃO (hash: #/planos, #/plano/<id> ...)
+// ============================================================
+function ir(caminho) { location.hash = '#/' + caminho; }
+function voltar() {
+  if (S.navegou > 0) history.back(); else ir('');
+}
+function hashAtual() {
+  const h = location.hash;
+  // links de e-mail do Supabase chegam como #access_token=... — não são rota
+  if (/access_token=|error_description=|type=recovery/.test(h)) return '';
+  return h.replace(/^#\/?/, '');
+}
+window.addEventListener('hashchange', () => {
+  if (S.ignorarHash) { S.ignorarHash = false; return; }
+  if (S.sujo && location.hash !== S.hashEditor) {
+    if (!confirm('Sair sem salvar?\n\nO que você digitou fica guardado neste aparelho e volta quando abrir o formulário de novo.')) {
+      S.ignorarHash = true; location.hash = S.hashEditor; return;
+    }
+    S.sujo = false;
+  }
+  S.navegou++;
+  if (S.perfil) rotear();
+});
+
+function montarCasca() {
+  $('btn-voltar').innerHTML = ic('voltar');
+  $('btn-conta').innerHTML = ic('usuario');
+  const abas = [
+    ['', 'inicio', 'Início'],
+    ['buscar', 'busca', 'Pesquisar'],
+    ['favoritos', 'estrela', 'Favoritos'],
+  ];
+  if (possoCriar()) abas.push(['meus-planos', 'pasta', 'Meus planos']);
+  if (souAdmin()) abas.push(['admin', 'escudo', 'Painel']);
+  $('abas').innerHTML = abas.map(([r, i, t]) => `<a href="#/${r}" data-rota="${r}">${ic(i)}<span>${t}</span></a>`).join('');
+}
+function marcarAba(rota) {
+  const raiz = rota.split('/')[0];
+  const mapa = { planos: '', experiencias: '', plano: '', experiencia: '', conta: '', editar: 'meus-planos' };
+  const alvo = raiz in mapa ? mapa[raiz] : raiz;
+  document.querySelectorAll('#abas a').forEach(a => a.classList.toggle('ativa', a.dataset.rota === alvo));
+}
+function topo(titulo, voltarVisivel = true) {
+  $('topo-titulo').textContent = titulo;
+  $('btn-voltar').classList.toggle('oculto', !voltarVisivel);
+  $('topo-marca').classList.toggle('oculto', voltarVisivel);
+  document.title = titulo + ' · Dinâmica Natural';
+}
+const main = () => $('conteudo');
+function carregando() { main().innerHTML = '<div class="vazio"><div class="giro" style="margin:0 auto"></div></div>'; }
+function falhou(e) {
+  main().innerHTML = `<div class="vazio">${ic('alerta')}<p><b>Não foi possível carregar.</b><br>${esc(traduzirErro(e))}</p>
+    <button class="btn btn-contorno" onclick="invalidar();rotear()">Tentar de novo</button></div>`;
+}
+
+async function rotear() {
+  const h = hashAtual();
+  const [caminho, qs] = h.split('?');
+  const p = caminho.split('/').filter(Boolean);
+  const q = new URLSearchParams(qs || '');
+  S.hashEditor = null;
+  window.scrollTo(0, 0);
+  marcarAba(caminho);
+  try {
+    switch (p[0] || '') {
+      case '': return await telaInicio();
+      case 'planos': return await telaBusca('planos');
+      case 'experiencias': return await telaBusca('experiencias');
+      case 'buscar': return await telaBusca('buscar');
+      case 'favoritos': return await telaBusca('favoritos');
+      case 'plano': return await telaVerPlano(p[1]);
+      case 'experiencia': return await telaVerExperiencia(p[1]);
+      case 'meus-planos': return await telaMeusPlanos(p[1] || 'criados');
+      case 'editar': return await telaEditor(p[1], p[2], q);
+      case 'conta': return await telaConta();
+      case 'admin':
+        if (!souAdmin()) { ir(''); return; }
+        switch (p[1] || '') {
+          case '': return await telaAdmin();
+          case 'participantes': return await telaParticipantes();
+          case 'planos': return await telaAdminConteudo('plano', p[2] || 'oficiais');
+          case 'experiencias': return await telaAdminConteudo('experiencia', p[2] || 'todas');
+          case 'categorias': return await telaCategorias();
+          case 'config': return await telaConfig();
+          case 'registro': return await telaRegistro();
+        }
+    }
+    ir('');
+  } catch (e) { console.error(e); falhou(e); }
+}
+
+// ============================================================
+//  TELA INICIAL
+// ============================================================
+async function telaInicio() {
+  topo(S.config.nome_plataforma || 'Planos de Atividades Imersivas', false);
+  const atalhos = [
+    ['planos', 'folha', 'Planos de Atividades Imersivas', 'O banco principal de planos'],
+    ['experiencias', 'frasco', 'Experiências', 'Propostas práticas e investigativas'],
+    ['buscar', 'busca', 'Pesquisar', 'Por tema, faixa etária, duração, espaço…'],
+    ['favoritos', 'estrela', 'Favoritos', 'Seus conteúdos salvos'],
+  ];
+  if (possoCriar()) {
+    atalhos.push(['editar/plano/novo', 'mais', 'Criar plano', 'Monte um novo plano no modelo padrão', 'destaque']);
+    atalhos.push(['meus-planos', 'pasta', 'Meus planos', 'Rascunhos, finalizados e salvos']);
+  }
+  if (souAdmin()) atalhos.push(['admin', 'escudo', 'Painel administrativo', 'Participantes, conteúdos e categorias', 'escuro']);
+  main().innerHTML = `
+    <div class="saudacao">
+      <h2>Olá, ${esc(primeiroNome(S.perfil.nome))}!</h2>
+      <p>${esc(S.config.boas_vindas || '')}</p>
+    </div>
+    <div class="grade-atalhos">${atalhos.map(([r, i, t, d, cls]) => `
+      <a class="atalho ${cls || ''}" href="#/${r}"><span class="ic">${ic(i)}</span><strong>${t}</strong><small>${d}</small></a>`).join('')}
+    </div>
+    <div id="recentes"></div>`;
+  try {
+    const [pl, ex] = await Promise.all([planosOficiais(), experienciasPub()]);
+    const todos = [...pl.map(x => ({ ...x, _t: 'plano' })), ...ex.map(x => ({ ...x, _t: 'experiencia' }))]
+      .sort((a, b) => String(b.publicado_em || b.atualizado_em).localeCompare(String(a.publicado_em || a.atualizado_em)))
+      .slice(0, 6);
+    if (todos.length && $('recentes')) {
+      $('recentes').innerHTML = `<h2 class="titulo-secao">Novidades</h2><div class="grade-cards">${todos.map(x => cardItem(x, x._t)).join('')}</div>`;
+    }
+  } catch (e) { console.warn(e); }
+}
+
+// ============================================================
+//  CARTÃO DE PLANO / EXPERIÊNCIA
+// ============================================================
+function cardItem(x, tipo, extra = '') {
+  const k = tipo + ':' + x.id, fav = S.favs.has(k);
+  const capa = (x.imagens || [])[0];
+  const chips = [x.faixa_etaria, x.duracao, x.local].filter(Boolean).slice(0, 3);
+  const stat = (x.status && x.status !== 'publicado') || (tipo === 'plano' && !x.oficial) ? selo(x.status) : '';
+  return `<article class="card-item" onclick="ir('${tipo}/${x.id}')">
+    <div class="capa ${capa ? '' : 'vazia'}" ${capa ? `style="background-image:url('${esc(capa.url)}')"` : ''}>${capa ? '' : ic(tipo === 'plano' ? 'folha' : 'frasco')}</div>
+    <button class="fav ${fav ? 'on' : ''}" data-fav="${k}" onclick="alternarFav(event,'${tipo}','${x.id}')" aria-label="${fav ? 'Remover dos favoritos' : 'Salvar nos favoritos'}">${ic('estrela')}</button>
+    <div class="corpo">
+      <div class="tipo">${tipo === 'plano' ? (x.oficial ? 'Plano de atividade' : 'Plano pessoal') : 'Experiência'} ${stat}</div>
+      <h3>${esc(x.titulo || '(sem título)')}</h3>
+      ${x.tema ? `<div style="color:var(--suave);font-size:14px">${esc(x.tema)}${x.area ? ' · ' + esc(x.area) : ''}</div>` : ''}
+      ${chips.length ? `<div class="chips">${chips.map(c => `<span class="chip">${esc(c)}</span>`).join('')}</div>` : ''}
+      ${extra}
+    </div>
+  </article>`;
+}
+
+// ============================================================
+//  PESQUISA / LISTAS (planos, experiências, busca, favoritos)
+// ============================================================
+async function telaBusca(modo) {
+  const titulos = { planos: 'Planos de Atividades', experiencias: 'Experiências', buscar: 'Pesquisar', favoritos: 'Favoritos' };
+  topo(titulos[modo]);
+  const f = S.filtros[modo] = S.filtros[modo] || { q: '', tipo: 'todos', aberto: false };
+  const tipoFixo = modo === 'planos' ? 'plano' : modo === 'experiencias' ? 'experiencia' : null;
+  const ativos = META.filter(([c]) => f[c]).length + (f.soFav ? 1 : 0);
+  main().innerHTML = `
+    ${!tipoFixo ? `<div class="segmento">${[['todos', 'Tudo'], ['plano', 'Planos'], ['experiencia', 'Experiências']]
+      .map(([v, t]) => `<button class="${f.tipo === v ? 'on' : ''}" onclick="S.filtros['${modo}'].tipo='${v}';telaBusca('${modo}')">${t}</button>`).join('')}</div>` : ''}
+    <div class="barra-busca">
+      <div class="caixa">${ic('busca')}<input class="entrada" id="busca-q" type="search" placeholder="Palavra-chave: tema, material, objetivo…" value="${esc(f.q)}"></div>
+      <button class="btn btn-contorno" onclick="S.filtros['${modo}'].aberto=!S.filtros['${modo}'].aberto;telaBusca('${modo}')" aria-expanded="${!!f.aberto}">${ic('filtro')}<span>Filtros${ativos ? ` (${ativos})` : ''}</span></button>
+    </div>
+    <div class="painel-filtros ${f.aberto ? '' : 'oculto'}">
+      <div class="grade-2">${META.map(([c, rot]) => `
+        <div class="campo"><label for="f-${c}">${rot}</label>
+          <select class="entrada" id="f-${c}" data-campo="${c}"><option value="">Todas</option>
+            ${(S.cats[c] || []).map(n => `<option ${f[c] === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}
+          </select></div>`).join('')}
+      </div>
+      ${modo !== 'favoritos' ? `<label class="check"><input type="checkbox" id="f-fav" ${f.soFav ? 'checked' : ''}> Somente favoritos</label>` : ''}
+      <button class="btn btn-contorno btn-pequeno" onclick="limparFiltros('${modo}')">Limpar filtros</button>
+    </div>
+    <div class="contagem" id="contagem"></div>
+    <div id="resultados"><div class="vazio"><div class="giro" style="margin:0 auto"></div></div></div>`;
+
+  let tDeb;
+  $('busca-q').addEventListener('input', e => { f.q = e.target.value; clearTimeout(tDeb); tDeb = setTimeout(() => aplicar(), 180); });
+  document.querySelectorAll('.painel-filtros select').forEach(s => s.addEventListener('change', e => { f[e.target.dataset.campo] = e.target.value; aplicar(); }));
+  const cf = $('f-fav'); if (cf) cf.addEventListener('change', e => { f.soFav = e.target.checked; aplicar(); });
+
+  let itens = [];
+  try {
+    const querPlanos = tipoFixo !== 'experiencia', querExps = tipoFixo !== 'plano';
+    const [pl, ex, meus] = await Promise.all([
+      querPlanos ? planosOficiais() : [], querExps ? experienciasPub() : [],
+      modo === 'favoritos' && possoCriar() ? meusPlanos() : [],
+    ]);
+    itens = [...pl.map(x => ({ ...x, _t: 'plano' })), ...meus.map(x => ({ ...x, _t: 'plano' })), ...ex.map(x => ({ ...x, _t: 'experiencia' }))];
+  } catch (e) { falhou(e); return; }
+
+  function aplicar() {
+    const termos = normalizar(f.q).split(/\s+/).filter(Boolean);
+    const soFav = modo === 'favoritos' || f.soFav;
+    const lista = itens.filter(x => {
+      if (!tipoFixo && f.tipo !== 'todos' && x._t !== f.tipo) return false;
+      if (soFav && !S.favs.has(x._t + ':' + x.id)) return false;
+      for (const [c] of META) if (f[c] && x[c] !== f[c]) return false;
+      if (termos.length) {
+        const txt = normalizar([x.titulo, x.tema, x.area, x.faixa_etaria, x.local, x.tipo_atividade, x.objetivos, x.objetivo,
+          x.materiais, x.desenvolvimento, x.procedimento, x.fenomeno, x.perguntas].join(' '));
+        if (!termos.every(t => txt.includes(t))) return false;
+      }
+      return true;
+    });
+    $('contagem').textContent = lista.length === 1 ? '1 resultado' : `${lista.length} resultados`;
+    $('resultados').innerHTML = lista.length
+      ? `<div class="grade-cards">${lista.map(x => cardItem(x, x._t)).join('')}</div>`
+      : `<div class="vazio">${ic(modo === 'favoritos' ? 'estrela' : 'busca')}<p>${modo === 'favoritos' && !f.q && !ativos
+          ? 'Você ainda não salvou nada.<br>Toque na ☆ de um plano ou experiência para guardar aqui.'
+          : 'Nada encontrado com esses filtros.'}</p></div>`;
+  }
+  aplicar();
+}
+function limparFiltros(modo) {
+  const f = S.filtros[modo]; META.forEach(([c]) => f[c] = ''); f.q = ''; f.soFav = false;
+  telaBusca(modo);
+}
+
+// ============================================================
+//  VER PLANO
+// ============================================================
+function blocoFicha(x, rotDuracao = 'Duração') {
+  const itens = META.filter(([c]) => x[c]).map(([c, r]) => `<div><small>${c === 'duracao' ? rotDuracao : r}</small><b>${esc(x[c])}</b></div>`);
+  return itens.length ? `<div class="ficha">${itens.join('')}</div>` : '';
+}
+function blocoGaleria(x) {
+  const im = x.imagens || [];
+  return im.length ? `<div class="galeria">${im.map(i => `<img src="${esc(i.url)}" alt="" loading="lazy" onclick="verImagem('${esc(i.url)}')">`).join('')}</div>` : '';
+}
+function cabecaImpressao(tipo) {
+  return `<div class="so-impressao"><img src="logo.jpg" alt=""><div><b>Dinâmica Natural</b><br>${tipo}</div></div>`;
+}
+
+async function telaVerPlano(id) {
+  topo('Plano de atividade');
+  carregando();
+  const x = await buscarItem('plano', id);
+  if (!x || (x.excluido_em && !souAdmin())) { main().innerHTML = `<div class="vazio">${ic('alerta')}<p>Este plano não está disponível.</p></div>`; return; }
+  const { data: ligs } = await db.from('plano_experiencias').select('ordem, experiencias(*)').eq('plano_id', id).order('ordem');
+  const exps = (ligs || []).map(l => l.experiencias).filter(Boolean);
+  const meu = x.autor_id === S.perfil.id && !x.oficial;
+  const podeEditar = souAdmin() || meu;
+  const k = 'plano:' + x.id, fav = S.favs.has(k);
+  topo(x.oficial ? 'Plano de atividade' : 'Meu plano');
+  main().innerHTML = `
+    ${cabecaImpressao('Plano de Atividade Imersiva')}
+    <div class="ver-cabeca">
+      ${x.excluido_em ? `<div class="aviso-caixa">Este plano está na lixeira.</div>` : ''}
+      ${!x.oficial || x.status !== 'publicado' ? selo(x.status) : ''}
+      <h1>${esc(x.titulo || '(sem título)')}</h1>
+    </div>
+    ${blocoGaleria(x)}
+    ${blocoFicha(x)}
+    <div class="barra-acoes">
+      <button class="btn btn-contorno fav ${fav ? 'on' : ''}" data-fav="${k}" onclick="alternarFav(event,'plano','${x.id}')">${ic('estrela')}<span class="rot">${fav ? 'Salvo' : 'Salvar'}</span></button>
+      ${podeEditar ? `<a class="btn btn-verde" href="#/editar/plano/${x.id}">${ic('editar')}Editar</a>` : ''}
+      ${possoCriar() && !meu ? `<button class="btn btn-contorno" onclick="copiarParaMeus('${x.id}')">${ic('copiar')}Copiar para Meus planos</button>` : ''}
+      <button class="btn btn-contorno" onclick="window.print()">${ic('imprimir')}Imprimir / PDF</button>
+    </div>
+    ${CAMPOS_PLANO.filter(([c]) => (x[c] || '').trim()).map(([c, r]) => `<section class="secao"><h2>${r}</h2><div class="txt">${esc(x[c])}</div></section>`).join('')
+      || '<div class="vazio"><p>Este plano ainda não tem conteúdo.</p></div>'}
+    ${exps.length ? `<h2 class="titulo-secao">Experiências deste plano</h2><div class="grade-cards">${exps.map(e => cardItem(e, 'experiencia')).join('')}</div>` : ''}
+    <div class="rodape-item">Atualizado em ${dataBR(x.atualizado_em)}</div>`;
+}
+
+async function copiarParaMeus(id) {
+  const x = await buscarItem('plano', id);
+  if (!x) return;
+  const copia = {};
+  ['titulo', ...META.map(m => m[0]), ...CAMPOS_PLANO.map(c => c[0]), 'imagens'].forEach(c => copia[c] = x[c]);
+  copia.titulo = x.titulo + ' (minha versão)';
+  Object.assign(copia, { oficial: false, status: 'rascunho', autor_id: S.perfil.id, origem_id: x.id });
+  const { data, error } = await db.from('planos').insert(copia).select().single();
+  if (error) { toast('Não consegui copiar: ' + traduzirErro(error), 5000); return; }
+  const { data: ligs } = await db.from('plano_experiencias').select('experiencia_id,ordem').eq('plano_id', id);
+  if (ligs && ligs.length) await db.from('plano_experiencias').insert(ligs.map(l => ({ ...l, plano_id: data.id })));
+  invalidar('meus');
+  toast('Cópia criada em Meus planos. Agora é só adaptar.');
+  ir('editar/plano/' + data.id);
+}
+
+// ============================================================
+//  VER EXPERIÊNCIA
+// ============================================================
+async function telaVerExperiencia(id) {
+  topo('Experiência');
+  carregando();
+  const x = await buscarItem('experiencia', id);
+  if (!x) { main().innerHTML = `<div class="vazio">${ic('alerta')}<p>Esta experiência não está disponível.</p></div>`; return; }
+  const k = 'experiencia:' + x.id, fav = S.favs.has(k);
+  main().innerHTML = `
+    ${cabecaImpressao('Experiência')}
+    <div class="ver-cabeca">
+      ${x.excluido_em ? `<div class="aviso-caixa">Esta experiência está na lixeira.</div>` : ''}
+      ${x.status !== 'publicado' ? selo(x.status) : ''}
+      <h1>${esc(x.titulo || '(sem título)')}</h1>
+    </div>
+    ${blocoGaleria(x)}
+    ${blocoFicha(x, 'Tempo aproximado')}
+    <div class="barra-acoes">
+      <button class="btn btn-contorno fav ${fav ? 'on' : ''}" data-fav="${k}" onclick="alternarFav(event,'experiencia','${x.id}')">${ic('estrela')}<span class="rot">${fav ? 'Salvo' : 'Salvar'}</span></button>
+      ${souAdmin() ? `<a class="btn btn-verde" href="#/editar/experiencia/${x.id}">${ic('editar')}Editar</a>` : ''}
+      <button class="btn btn-contorno" onclick="window.print()">${ic('imprimir')}Imprimir / PDF</button>
+    </div>
+    ${CAMPOS_EXP.filter(([c]) => (x[c] || '').trim()).map(([c, r]) => c === 'seguranca'
+      ? `<section class="secao alerta"><h2>${ic('alerta')}${r}</h2><div class="txt">${esc(x[c])}</div></section>`
+      : `<section class="secao"><h2>${r}</h2><div class="txt">${esc(x[c])}</div></section>`).join('')}
+    <div class="rodape-item">Atualizado em ${dataBR(x.atualizado_em)}</div>`;
+}
+
+// ============================================================
+//  MEUS PLANOS
+// ============================================================
+async function telaMeusPlanos(aba) {
+  topo('Meus planos');
+  if (!possoCriar()) aba = 'salvos';
+  main().innerHTML = `
+    <div class="linha-botoes" style="justify-content:space-between;margin-bottom:14px">
+      <div class="segmento" style="margin:0">
+        ${possoCriar() ? `<button class="${aba === 'criados' ? 'on' : ''}" onclick="ir('meus-planos/criados')">Criados por mim</button>` : ''}
+        <button class="${aba === 'salvos' ? 'on' : ''}" onclick="ir('meus-planos/salvos')">Salvos</button>
+      </div>
+      ${possoCriar() ? `<a class="btn btn-verde" href="#/editar/plano/novo">${ic('mais')}Criar plano</a>` : ''}
+    </div>
+    <div id="lista-meus"><div class="vazio"><div class="giro" style="margin:0 auto"></div></div></div>`;
+  let lista;
+  try {
+    lista = aba === 'salvos'
+      ? (await planosOficiais()).filter(x => S.favs.has('plano:' + x.id))
+      : await meusPlanos(true);
+  } catch (e) { falhou(e); return; }
+  if (!lista.length) {
+    $('lista-meus').innerHTML = `<div class="vazio">${ic(aba === 'salvos' ? 'estrela' : 'pasta')}<p>${aba === 'salvos'
+      ? 'Nenhum plano salvo ainda. Toque na ☆ de um plano para ele aparecer aqui.'
+      : 'Você ainda não criou nenhum plano.<br>Comece do zero ou copie um plano do banco principal.'}</p></div>`;
+    return;
+  }
+  if (aba === 'salvos') { $('lista-meus').innerHTML = `<div class="grade-cards">${lista.map(x => cardItem(x, 'plano')).join('')}</div>`; return; }
+  const grupos = [['rascunho', 'Rascunhos'], ['finalizado', 'Finalizados']];
+  $('lista-meus').innerHTML = grupos.map(([st, rot]) => {
+    const g = lista.filter(x => x.status === st);
+    return g.length ? `<h2 class="titulo-secao">${rot} <small style="font-size:14px;color:var(--suave)">${g.length}</small></h2>
+      <div class="grade-cards">${g.map(x => cardItem(x, 'plano', `<div class="linha-botoes" style="margin-top:6px">
+        <a class="btn btn-contorno btn-pequeno" href="#/editar/plano/${x.id}" onclick="event.stopPropagation()">${ic('editar')}Editar</a>
+        <button class="btn btn-perigo btn-pequeno" onclick="event.stopPropagation();excluirMeuPlano('${x.id}')">${ic('lixo')}Excluir</button></div>`)).join('')}</div>` : '';
+  }).join('');
+}
+async function excluirMeuPlano(id) {
+  if (!confirm('Excluir este plano?\n\nEle sai da sua lista. Se precisar recuperar, peça ao administrador.')) return;
+  const { error } = await db.from('planos').update({ excluido_em: new Date().toISOString() }).eq('id', id);
+  if (error) { toast(traduzirErro(error)); return; }
+  invalidar('meus'); toast('Plano excluído'); rotear();
+}
+
+// ============================================================
+//  EDITOR (plano / experiência)
+// ============================================================
+function chaveRascunho(tipo, id) { return `dn_rasc_${S.perfil.id}_${tipo}_${id || 'novo'}`; }
+
+async function telaEditor(tipo, id, q) {
+  if (tipo !== 'plano' && tipo !== 'experiencia') { ir(''); return; }
+  if (tipo === 'experiencia' && !souAdmin()) { ir(''); return; }
+  const novo = !id || id === 'novo';
+  if (tipo === 'plano' && novo && !possoCriar()) { toast('Você não tem permissão para criar planos.'); ir(''); return; }
+  topo(novo ? (tipo === 'plano' ? 'Novo plano' : 'Nova experiência') : 'Editar');
+  carregando();
+
+  let x = {};
+  if (!novo) {
+    x = await buscarItem(tipo, id);
+    if (!x) { main().innerHTML = `<div class="vazio"><p>Não encontrado.</p></div>`; return; }
+    if (tipo === 'plano' && !souAdmin() && (x.oficial || x.autor_id !== S.perfil.id)) { toast('Você só pode editar os seus planos.'); ir('plano/' + id); return; }
+  } else {
+    x = { status: 'rascunho', imagens: [], oficial: tipo === 'plano' && souAdmin() && q.get('oficial') === '1' };
+  }
+  let exps = [];
+  if (tipo === 'plano' && !novo) {
+    const { data } = await db.from('plano_experiencias').select('ordem, experiencias(id,titulo,faixa_etaria,duracao)').eq('plano_id', id).order('ordem');
+    exps = (data || []).map(l => l.experiencias).filter(Boolean);
+  }
+
+  const campos = tipo === 'plano' ? CAMPOS_PLANO : CAMPOS_EXP;
+  S.ed = { tipo, id: novo ? null : id, x, campos, imagens: [...(x.imagens || [])], novas: [], removidas: [], exps };
+
+  // Rascunho local mais novo que o salvo? (queda de internet, app fechado…)
+  const local = lsGet(chaveRascunho(tipo, S.ed.id));
+  let restaurou = false;
+  if (local && (!x.atualizado_em || local.em > new Date(x.atualizado_em).getTime())) {
+    if (confirm(`Há alterações deste ${tipo === 'plano' ? 'plano' : 'conteúdo'} guardadas neste aparelho (${dataBR(local.em)}) que não chegaram a ser salvas.\n\nRecuperar?`)) {
+      Object.assign(x, local.campos); if (local.exps) S.ed.exps = local.exps; restaurou = true;
+    } else lsDel(chaveRascunho(tipo, S.ed.id));
+  }
+
+  const admin = souAdmin();
+  const rotDur = tipo === 'plano' ? 'Duração' : 'Tempo aproximado';
+  main().innerHTML = `
+    <form id="form-editor" onsubmit="event.preventDefault()">
+      ${restaurou ? `<div class="aviso-caixa">Alterações recuperadas deste aparelho. Lembre de salvar.</div>` : ''}
+      <div class="campo"><label for="ed-titulo">Título *</label>
+        <input class="entrada" id="ed-titulo" data-c="titulo" value="${esc(x.titulo || '')}" maxlength="160" placeholder="Nome da atividade"></div>
+      <div class="grade-2">${META.map(([c, r]) => `
+        <div class="campo"><label for="ed-${c}">${c === 'duracao' ? rotDur : r}</label>
+          <input class="entrada" id="ed-${c}" data-c="${c}" list="dl-${c}" value="${esc(x[c] || '')}" placeholder="Escolha ou digite">
+          <datalist id="dl-${c}">${(S.cats[c] || []).map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>`).join('')}
+      </div>
+      ${campos.map(([c, r, dica]) => `
+        <div class="campo"><label for="ed-${c}">${r}</label><div class="dica">${dica}</div>
+          <textarea class="entrada" id="ed-${c}" data-c="${c}" rows="3">${esc(x[c] || '')}</textarea></div>`).join('')}
+
+      <div class="campo"><label>Imagens</label><div class="dica">Até 8 imagens. Elas são reduzidas automaticamente antes de enviar.</div>
+        <div class="miniaturas" id="ed-minis"></div>
+        <label class="btn btn-contorno" style="align-self:flex-start">${ic('imagem')}Adicionar imagens
+          <input type="file" accept="image/*" multiple class="oculto" onchange="adicionarImagens(this)"></label>
+      </div>
+
+      ${tipo === 'plano' ? `<div class="campo"><label>Experiências usadas neste plano</label><div class="dica">Opcional. Escolha no banco de experiências.</div>
+        <div class="lista-simples" id="ed-exps"></div>
+        <button type="button" class="btn btn-contorno" style="align-self:flex-start;margin-top:8px" onclick="escolherExperiencia()">${ic('mais')}Adicionar experiência</button></div>` : ''}
+
+      ${admin && tipo === 'plano' ? `<label class="check"><input type="checkbox" id="ed-oficial" ${x.oficial ? 'checked' : ''}> Plano oficial da Dinâmica Natural (vai para o banco principal)</label>` : ''}
+
+      <div class="barra-salvar nao-imprimir"><div class="linha-botoes">${botoesSalvar(tipo, x)}</div></div>
+    </form>`;
+
+  document.querySelectorAll('#form-editor textarea').forEach(t => { autoAltura(t); t.addEventListener('input', () => autoAltura(t)); });
+  let tRasc;
+  $('form-editor').addEventListener('input', () => {
+    S.sujo = true;
+    clearTimeout(tRasc); tRasc = setTimeout(guardarRascunhoLocal, 600);
+  });
+  const of = $('ed-oficial'); if (of) of.addEventListener('change', () => { S.ed.x.oficial = of.checked; document.querySelector('.barra-salvar .linha-botoes').innerHTML = botoesSalvar(tipo, { ...S.ed.x, oficial: of.checked }); S.sujo = true; });
+  S.sujo = restaurou;
+  S.hashEditor = location.hash;
+  desenharMinis(); desenharExps();
+}
+
+function botoesSalvar(tipo, x) {
+  const publicavel = tipo === 'experiencia' || (souAdmin() && x.oficial);
+  if (publicavel) {
+    return `<button type="button" class="btn btn-contorno" onclick="salvarEditor('rascunho')">Salvar rascunho</button>
+      <button type="button" class="btn btn-verde" onclick="salvarEditor('publicado')">${ic('check')}${x.status === 'publicado' ? 'Salvar (publicado)' : 'Publicar'}</button>
+      ${x.status === 'publicado' ? '<span class="dica" style="font-size:13px;color:var(--suave)">“Salvar rascunho” retira da publicação.</span>' : ''}`;
+  }
+  return `<button type="button" class="btn btn-contorno" onclick="salvarEditor('rascunho')">Salvar rascunho</button>
+    <button type="button" class="btn btn-verde" onclick="salvarEditor('finalizado')">${ic('check')}Finalizar plano</button>`;
+}
+
+function lerFormulario() {
+  const c = {};
+  document.querySelectorAll('#form-editor [data-c]').forEach(el => c[el.dataset.c] = el.value.trim());
+  return c;
+}
+function guardarRascunhoLocal() {
+  if (!S.ed) return;
+  lsSet(chaveRascunho(S.ed.tipo, S.ed.id), { em: Date.now(), campos: lerFormulario(), exps: S.ed.exps });
+}
+
+function desenharMinis() {
+  const el = $('ed-minis'); if (!el) return;
+  el.innerHTML = [
+    ...S.ed.imagens.map((im, i) => `<div class="mini"><img src="${esc(im.url)}" alt=""><button type="button" onclick="removerImagem(${i})" aria-label="Remover imagem">${ic('x')}</button></div>`),
+    ...S.ed.novas.map((n, i) => `<div class="mini"><img src="${n.preview}" alt=""><button type="button" onclick="removerNova(${i})" aria-label="Remover imagem">${ic('x')}</button></div>`),
+  ].join('');
+}
+function adicionarImagens(inp) {
+  const livres = 8 - S.ed.imagens.length - S.ed.novas.length;
+  const arqs = [...inp.files].filter(f => /^image\//.test(f.type)).slice(0, Math.max(0, livres));
+  if (inp.files.length > arqs.length) toast('Limite de 8 imagens por conteúdo.');
+  arqs.forEach(f => S.ed.novas.push({ file: f, preview: URL.createObjectURL(f) }));
+  inp.value = ''; S.sujo = true; desenharMinis();
+}
+function removerImagem(i) { const [im] = S.ed.imagens.splice(i, 1); if (im && im.path) S.ed.removidas.push(im.path); S.sujo = true; desenharMinis(); }
+function removerNova(i) { S.ed.novas.splice(i, 1); S.sujo = true; desenharMinis(); }
+
+function desenharExps() {
+  const el = $('ed-exps'); if (!el) return;
+  el.innerHTML = S.ed.exps.length ? S.ed.exps.map((e, i) => `<div class="linha-item"><div class="t"><b>${esc(e.titulo)}</b><small>${esc([e.faixa_etaria, e.duracao].filter(Boolean).join(' · '))}</small></div>
+      <button type="button" class="btn-icone" onclick="moverExp(${i},-1)" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>${ic('cima')}</button>
+      <button type="button" class="btn-icone" onclick="moverExp(${i},1)" aria-label="Descer" ${i === S.ed.exps.length - 1 ? 'disabled' : ''}>${ic('baixo')}</button>
+      <button type="button" class="btn-icone" onclick="S.ed.exps.splice(${i},1);S.sujo=true;guardarRascunhoLocal();desenharExps()" aria-label="Tirar">${ic('x')}</button></div>`).join('')
+    : '<div class="dica" style="color:var(--suave)">Nenhuma experiência vinculada.</div>';
+}
+function moverExp(i, d) { const a = S.ed.exps; [a[i], a[i + d]] = [a[i + d], a[i]]; S.sujo = true; guardarRascunhoLocal(); desenharExps(); }
+async function escolherExperiencia() {
+  const todas = await experienciasPub();
+  const m = abrirModal(`<h2>Escolher experiência</h2>
+    <input class="entrada" id="esc-q" type="search" placeholder="Buscar experiência" style="margin-bottom:12px">
+    <div class="lista-simples" id="esc-lista"></div>`);
+  const desenhar = () => {
+    const t = normalizar($('esc-q').value);
+    const ja = new Set(S.ed.exps.map(e => e.id));
+    const l = todas.filter(e => !ja.has(e.id) && normalizar(e.titulo + ' ' + e.tema).includes(t));
+    $('esc-lista').innerHTML = l.length ? l.map(e => `<button type="button" class="linha-item" style="text-align:left" data-id="${e.id}">
+      <div class="t"><b>${esc(e.titulo)}</b><small>${esc([e.faixa_etaria, e.duracao, e.tema].filter(Boolean).join(' · '))}</small></div>${ic('mais')}</button>`).join('')
+      : '<div class="vazio"><p>Nenhuma experiência publicada encontrada.</p></div>';
+    $('esc-lista').querySelectorAll('button').forEach(b => b.onclick = () => {
+      const e = todas.find(z => z.id === b.dataset.id);
+      S.ed.exps.push({ id: e.id, titulo: e.titulo, faixa_etaria: e.faixa_etaria, duracao: e.duracao });
+      S.sujo = true; guardarRascunhoLocal(); desenharExps(); m.fechar();
+    });
+  };
+  $('esc-q').addEventListener('input', desenhar); desenhar(); $('esc-q').focus();
+}
+
+// Apaga do Storage só a imagem que nenhum outro plano/experiência usa
+// (cópias de planos apontam para a mesma foto).
+async function apagarImagensSemUso(paths, idAtual) {
+  for (const path of paths) {
+    const filtro = JSON.stringify([{ path }]);
+    const [a, b] = await Promise.all([
+      db.from('planos').select('id').contains('imagens', filtro).neq('id', idAtual).limit(1),
+      db.from('experiencias').select('id').contains('imagens', filtro).neq('id', idAtual).limit(1),
+    ]);
+    if (a.error || b.error || (a.data || []).length || (b.data || []).length) continue;
+    await db.storage.from('imagens').remove([path]);
+  }
+}
+
+let salvando = false;
+async function salvarEditor(status) {
+  if (salvando || !S.ed) return;
+  const ed = S.ed, tipo = ed.tipo, tabela = tipo === 'plano' ? 'planos' : 'experiencias';
+  const c = lerFormulario();
+  if (!c.titulo) { toast('Dê um título antes de salvar.'); $('ed-titulo').focus(); return; }
+  if (status !== 'rascunho' && tipo === 'plano' && !c.objetivos && !c.desenvolvimento) {
+    if (!confirm('Objetivos e Desenvolvimento estão vazios. Salvar assim mesmo?')) return;
+  }
+  const oficial = tipo === 'plano' ? (souAdmin() ? !!($('ed-oficial') && $('ed-oficial').checked) : false) : undefined;
+  if (tipo === 'plano' && !oficial && status === 'publicado') status = 'finalizado';
+  if (tipo === 'plano' && oficial && status === 'finalizado') status = 'publicado';
+
+  salvando = true;
+  document.querySelectorAll('.barra-salvar button').forEach(b => b.disabled = true);
+  toast('Salvando…', 20000);
+  const enviados = [];
+  try {
+    // 1. sobe as imagens novas (só agora — assim foto de formulário abandonado não vira lixo no Storage)
+    const pasta = souAdmin() && (tipo === 'experiencia' || oficial) ? 'conteudo' : S.perfil.id;
+    for (const n of ed.novas) {
+      const blob = await comprimirImagem(n.file);
+      const path = `${pasta}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+      const { error } = await db.storage.from('imagens').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+      if (error) throw new Error('Falha ao enviar imagem: ' + traduzirErro(error));
+      enviados.push({ path, url: db.storage.from('imagens').getPublicUrl(path).data.publicUrl });
+    }
+    // 2. grava o registro
+    const reg = { ...c, imagens: [...ed.imagens, ...enviados], status };
+    if (tipo === 'plano') reg.oficial = oficial;
+    let salvo;
+    if (ed.id) {
+      const { data, error } = await db.from(tabela).update(reg).eq('id', ed.id).select().single();
+      if (error) throw error; salvo = data;
+    } else {
+      reg.autor_id = S.perfil.id;
+      const { data, error } = await db.from(tabela).insert(reg).select().single();
+      if (error) throw error; salvo = data;
+    }
+    // 3. experiências vinculadas
+    if (tipo === 'plano') {
+      await db.from('plano_experiencias').delete().eq('plano_id', salvo.id);
+      if (ed.exps.length) {
+        const { error } = await db.from('plano_experiencias').insert(ed.exps.map((e, i) => ({ plano_id: salvo.id, experiencia_id: e.id, ordem: i })));
+        if (error) toast('Plano salvo, mas as experiências vinculadas falharam: ' + traduzirErro(error), 6000);
+      }
+    }
+    // 4. limpeza: fotos removidas + rascunho local
+    if (ed.removidas.length) apagarImagensSemUso(ed.removidas, salvo.id).catch(() => {});
+    lsDel(chaveRascunho(tipo, ed.id));
+    ed.novas.forEach(n => URL.revokeObjectURL(n.preview));
+    S.sujo = false; S.ed = null; invalidar();
+    toast(status === 'rascunho' ? 'Rascunho salvo ✓' : status === 'publicado' ? 'Publicado ✓' : 'Plano finalizado ✓');
+    location.replace('#/' + tipo + '/' + salvo.id);
+  } catch (e) {
+    // não deixa foto órfã no Storage se o registro não foi gravado
+    if (enviados.length) db.storage.from('imagens').remove(enviados.map(x => x.path)).catch(() => {});
+    guardarRascunhoLocal();
+    toast('Não foi salvo: ' + traduzirErro(e) + ' — o texto continua guardado neste aparelho.', 7000);
+  } finally {
+    salvando = false;
+    document.querySelectorAll('.barra-salvar button').forEach(b => b.disabled = false);
+  }
+}
+
+// ============================================================
+//  MINHA CONTA
+// ============================================================
+function telaConta() {
+  topo('Minha conta');
+  const p = S.perfil;
+  main().innerHTML = `
+    <div class="cartao" style="margin-bottom:14px">
+      <div style="display:flex;gap:14px;align-items:center">
+        <div class="atalho" style="min-height:0;padding:0;box-shadow:none"><span class="ic" style="width:56px;height:56px;border-radius:50%">${ic('usuario')}</span></div>
+        <div><h2 style="margin:0;font-size:21px">${esc(p.nome)}</h2><div style="color:var(--suave)">${esc(p.email)}</div>
+        <div style="margin-top:4px">${p.papel === 'admin' ? '<span class="selo selo-admin">Administrador</span>' : '<span class="selo selo-publicado">Participante</span>'}</div></div>
+      </div>
+    </div>
+    <div class="cartao" style="margin-bottom:14px">
+      <h2 style="font-size:18px;margin:0 0 12px">Trocar senha</h2>
+      <form onsubmit="event.preventDefault();trocarSenha()">
+        <div class="campo"><label for="c-s1">Nova senha</label><input class="entrada" id="c-s1" type="password" autocomplete="new-password" minlength="8"></div>
+        <div class="campo"><label for="c-s2">Repita a nova senha</label><input class="entrada" id="c-s2" type="password" autocomplete="new-password" minlength="8"></div>
+        <button class="btn btn-verde" id="c-btn">${ic('cadeado')}Salvar nova senha</button>
+      </form>
+    </div>
+    <div class="linha-botoes">
+      <button class="btn btn-perigo" onclick="sair()">${ic('sair')}Sair do app</button>
+      <button class="btn btn-contorno" onclick="procurarAtualizacao()">Procurar atualização</button>
+    </div>
+    <p class="versao">Dinâmica Natural · Planos de Atividades Imersivas · <b>${APP_VERSION}</b>${S.config.contato ? `<br>Contato: ${esc(S.config.contato)}` : ''}</p>`;
+}
+async function trocarSenha() {
+  const a = $('c-s1').value, b = $('c-s2').value;
+  if (a.length < 8) { toast('A senha precisa ter pelo menos 8 caracteres.'); return; }
+  if (a !== b) { toast('As duas senhas não são iguais.'); return; }
+  $('c-btn').disabled = true;
+  const { error } = await db.auth.updateUser({ password: a });
+  $('c-btn').disabled = false;
+  if (error) { toast(traduzirErro(error), 5000); return; }
+  $('c-s1').value = $('c-s2').value = '';
+  toast('Senha alterada ✓');
+}
+async function procurarAtualizacao() {
+  if (!window.__swReg) { location.reload(); return; }
+  toast('Procurando…');
+  await window.__swReg.update().catch(() => {});
+  setTimeout(() => { if (!swEsperando) toast('Você já está na versão mais recente (' + APP_VERSION + ').'); }, 2500);
+}
+
+// ============================================================
+//  PAINEL ADMINISTRATIVO
+// ============================================================
+async function telaAdmin() {
+  topo('Painel administrativo');
+  const contar = (t, f) => f(db.from(t).select('id', { count: 'exact', head: true })).then(r => r.count ?? '–');
+  main().innerHTML = `<div class="grade-atalhos">${[
+    ['admin/participantes', 'usuarios', 'Participantes', 'Cadastrar, bloquear, reativar, redefinir senha', 'n-part'],
+    ['admin/planos', 'folha', 'Planos', 'Criar, editar, duplicar, publicar e retirar', 'n-plan'],
+    ['admin/experiencias', 'frasco', 'Experiências', 'Criar, editar, publicar e retirar', 'n-exp'],
+    ['admin/categorias', 'etiqueta', 'Categorias', 'Temas, faixas etárias, áreas e filtros', ''],
+    ['admin/config', 'config', 'Configurações', 'Dados gerais da plataforma', ''],
+    ['admin/registro', 'historico', 'Registro de alterações', 'Quem mudou o quê, e quando', ''],
+  ].map(([r, i, t, d, n]) => `<a class="atalho" href="#/${r}"><span class="ic">${ic(i)}</span><strong>${t}${n ? ` <span id="${n}" style="color:var(--suave);font-weight:500"></span>` : ''}</strong><small>${d}</small></a>`).join('')}</div>`;
+  const [a, b, c] = await Promise.all([
+    contar('perfis', q => q.is('removido_em', null)),
+    contar('planos', q => q.eq('oficial', true).is('excluido_em', null)),
+    contar('experiencias', q => q.is('excluido_em', null)),
+  ]);
+  if ($('n-part')) { $('n-part').textContent = `(${a})`; $('n-plan').textContent = `(${b})`; $('n-exp').textContent = `(${c})`; }
+}
+
+// ---------- Participantes ----------
+async function chamarFuncao(corpo) {
+  const { data, error } = await db.functions.invoke('gerenciar-participante', { body: corpo });
+  if (error) {
+    let det = '';
+    try { det = (await error.context.json()).erro || ''; } catch (e) {}
+    throw new Error(det || 'A função “gerenciar-participante” não respondeu. Ela foi publicada no Supabase? (' + error.message + ')');
+  }
+  if (!data || !data.ok) throw new Error((data && data.erro) || 'Falha desconhecida.');
+  return data;
+}
+
+async function telaParticipantes() {
+  topo('Participantes');
+  const f = S.filtros.part = S.filtros.part || { q: '', revogados: false };
+  main().innerHTML = `
+    <div class="linha-botoes" style="margin-bottom:12px">
+      <button class="btn btn-verde" onclick="formParticipante()">${ic('mais')}Novo participante</button>
+    </div>
+    <div class="barra-busca"><div class="caixa">${ic('busca')}<input class="entrada" id="p-q" type="search" placeholder="Buscar por nome ou e-mail" value="${esc(f.q)}"></div></div>
+    <label class="check"><input type="checkbox" id="p-rev" ${f.revogados ? 'checked' : ''}> Mostrar acessos revogados</label>
+    <div id="p-lista"><div class="vazio"><div class="giro" style="margin:0 auto"></div></div></div>`;
+  const { data, error } = await db.from('perfis').select('*').order('nome');
+  if (error) { falhou(error); return; }
+  S.participantes = data || [];
+  const desenhar = () => {
+    const t = normalizar(f.q);
+    const l = S.participantes.filter(p => (f.revogados || !p.removido_em) && normalizar(p.nome + ' ' + p.email).includes(t));
+    $('p-lista').innerHTML = l.length ? `<div class="lista-simples">${l.map(p => `
+      <button class="linha-item" style="text-align:left" onclick="acoesParticipante('${p.id}')">
+        <div class="t"><b>${esc(p.nome)}</b><small>${esc(p.email)}</small></div>
+        ${p.papel === 'admin' ? '<span class="selo selo-admin">Admin</span>' : ''}
+        ${p.removido_em ? '<span class="selo selo-bloqueado">Revogado</span>' : !p.ativo ? '<span class="selo selo-bloqueado">Bloqueado</span>' : '<span class="selo selo-publicado">Ativo</span>'}
+      </button>`).join('')}</div>` : '<div class="vazio"><p>Ninguém encontrado.</p></div>';
+  };
+  $('p-q').addEventListener('input', e => { f.q = e.target.value; desenhar(); });
+  $('p-rev').addEventListener('change', e => { f.revogados = e.target.checked; desenhar(); });
+  desenhar();
+}
+
+function gerarSenha() {
+  const letras = 'abcdefghjkmnpqrstuvwxyz', nums = '23456789';
+  const a = new Uint32Array(8); crypto.getRandomValues(a);
+  let s = ''; for (let i = 0; i < 6; i++) s += letras[a[i] % letras.length];
+  return s.charAt(0).toUpperCase() + s.slice(1) + nums[a[6] % 8] + nums[a[7] % 8];
+}
+
+function formParticipante(p) {
+  const novo = !p;
+  p = p || { nome: '', email: '', papel: 'participante', pode_criar_planos: true };
+  const m = abrirModal(`<h2>${novo ? 'Novo participante' : 'Editar participante'}</h2>
+    <form id="fp" onsubmit="event.preventDefault()">
+      <div class="campo"><label for="fp-nome">Nome</label><input class="entrada" id="fp-nome" value="${esc(p.nome)}" required></div>
+      <div class="campo"><label for="fp-email">E-mail (é o login)</label><input class="entrada" id="fp-email" type="email" value="${esc(p.email)}" required></div>
+      ${novo ? `<div class="campo"><label for="fp-senha">Senha inicial</label>
+        <div class="linha-botoes" style="flex-wrap:nowrap"><input class="entrada" id="fp-senha" value="${gerarSenha()}" minlength="8">
+        <button type="button" class="btn btn-contorno btn-pequeno" onclick="$('fp-senha').value=gerarSenha()">Gerar</button></div>
+        <div class="dica">A pessoa pode trocar depois em “Minha conta”.</div></div>` : ''}
+      <div class="campo"><label for="fp-papel">Papel</label><select class="entrada" id="fp-papel">
+        <option value="participante" ${p.papel !== 'admin' ? 'selected' : ''}>Participante</option>
+        <option value="admin" ${p.papel === 'admin' ? 'selected' : ''}>Administrador</option></select></div>
+      <label class="check"><input type="checkbox" id="fp-criar" ${p.pode_criar_planos ? 'checked' : ''}> Pode criar os próprios planos</label>
+      <button class="btn btn-verde" id="fp-btn" style="width:100%">${novo ? 'Cadastrar' : 'Salvar'}</button>
+    </form>`);
+  $('fp-btn').onclick = async () => {
+    const corpo = {
+      acao: novo ? 'criar' : 'editar', id: p.id,
+      nome: $('fp-nome').value.trim(), email: $('fp-email').value.trim(),
+      papel: $('fp-papel').value, pode_criar_planos: $('fp-criar').checked,
+    };
+    if (novo) corpo.senha = $('fp-senha').value;
+    $('fp-btn').disabled = true;
+    try {
+      await chamarFuncao(corpo);
+      m.fechar();
+      if (novo) mostrarDadosDeAcesso(corpo.nome, corpo.email, corpo.senha);
+      else toast('Dados salvos ✓');
+      telaParticipantes();
+    } catch (e) { toast(e.message, 6000); $('fp-btn').disabled = false; }
+  };
+}
+
+function mostrarDadosDeAcesso(nome, email, senha) {
+  const link = location.origin + location.pathname;
+  const msg = `Olá, ${primeiroNome(nome)}! Seu acesso aos Planos de Atividades Imersivas da Dinâmica Natural está liberado.\n\nLink: ${link}\nE-mail: ${email}\nSenha: ${senha}\n\nNo primeiro acesso, troque a senha em “Minha conta”. Dica: no celular, abra o link e use “Adicionar à tela inicial”.`;
+  const m = abrirModal(`<h2>Acesso criado ✓</h2>
+    <p>Envie estes dados para <b>${esc(nome)}</b>. A senha não fica visível depois de fechar esta janela.</p>
+    <textarea class="entrada" rows="9" readonly id="msg-acesso">${esc(msg)}</textarea>
+    <div class="linha-botoes" style="margin-top:12px">
+      <button class="btn btn-verde" id="b-copiar">${ic('copiar')}Copiar</button>
+      <a class="btn btn-contorno" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">${ic('compartilhar')}WhatsApp</a>
+    </div>`);
+  $('b-copiar').onclick = async () => {
+    try { await navigator.clipboard.writeText(msg); toast('Copiado ✓'); }
+    catch (e) { $('msg-acesso').select(); document.execCommand('copy'); toast('Copiado ✓'); }
+  };
+}
+
+function acoesParticipante(id) {
+  const p = S.participantes.find(x => x.id === id); if (!p) return;
+  const eu = p.id === S.perfil.id;
+  const m = abrirModal(`<h2>${esc(p.nome)}</h2>
+    <p style="margin-top:-8px;color:var(--suave)">${esc(p.email)}<br>
+      ${p.papel === 'admin' ? 'Administrador' : 'Participante'} · ${p.removido_em ? 'Acesso revogado' : p.ativo ? 'Ativo' : 'Bloqueado'}
+      · ${p.pode_criar_planos ? 'pode criar planos' : 'não cria planos'}<br><small>Cadastrado em ${dataBR(p.criado_em)}</small></p>
+    <div class="lista-simples">
+      <button class="btn btn-contorno" data-a="editar">${ic('editar')}Editar dados</button>
+      <button class="btn btn-contorno" data-a="senha">${ic('cadeado')}Definir nova senha</button>
+      ${eu ? '' : (p.ativo && !p.removido_em
+        ? `<button class="btn btn-perigo" data-a="bloquear">Bloquear acesso</button>`
+        : `<button class="btn btn-verde" data-a="reativar">Reativar acesso</button>`)}
+      ${eu || p.removido_em ? '' : `<button class="btn btn-perigo" data-a="revogar">Revogar acesso (remover da lista)</button>`}
+    </div>`);
+  m.querySelectorAll('[data-a]').forEach(b => b.onclick = async () => {
+    const a = b.dataset.a;
+    if (a === 'editar') { m.fechar(); formParticipante(p); return; }
+    let corpo = { acao: a, id: p.id };
+    if (a === 'senha') {
+      const s = prompt(`Nova senha para ${p.nome} (mínimo 8 caracteres):`, gerarSenha());
+      if (!s) return; corpo.senha = s;
+    }
+    if (a === 'bloquear' && !confirm(`Bloquear ${p.nome}?\n\nA pessoa não consegue mais entrar. Os planos dela ficam guardados. Você pode reativar quando quiser.`)) return;
+    if (a === 'revogar' && !confirm(`Revogar o acesso de ${p.nome}?\n\nA pessoa é bloqueada e sai da lista (marque “Mostrar acessos revogados” para ver). Dá para reativar depois.`)) return;
+    b.disabled = true;
+    try {
+      await chamarFuncao(corpo);
+      m.fechar();
+      if (a === 'senha') mostrarDadosDeAcesso(p.nome, p.email, corpo.senha);
+      else toast({ bloquear: 'Acesso bloqueado', reativar: 'Acesso reativado ✓', revogar: 'Acesso revogado' }[a]);
+      telaParticipantes();
+    } catch (e) { toast(e.message, 6000); b.disabled = false; }
+  });
+}
+
+// ---------- Planos / Experiências (admin) ----------
+async function telaAdminConteudo(tipo, aba) {
+  const plano = tipo === 'plano', tabela = plano ? 'planos' : 'experiencias';
+  topo(plano ? 'Planos' : 'Experiências');
+  const abas = plano ? [['oficiais', 'Oficiais'], ['participantes', 'Dos participantes'], ['lixeira', 'Lixeira']] : [['todas', 'Todas'], ['lixeira', 'Lixeira']];
+  const f = S.filtros['adm' + tipo] = S.filtros['adm' + tipo] || { q: '' };
+  main().innerHTML = `
+    <div class="linha-botoes" style="justify-content:space-between;margin-bottom:12px">
+      <div class="segmento" style="margin:0">${abas.map(([v, t]) => `<button class="${aba === v ? 'on' : ''}" onclick="ir('admin/${tabela}/${v}')">${t}</button>`).join('')}</div>
+      <a class="btn btn-verde" href="#/editar/${tipo}/novo${plano ? '?oficial=1' : ''}">${ic('mais')}${plano ? 'Novo plano oficial' : 'Nova experiência'}</a>
+    </div>
+    <div class="barra-busca"><div class="caixa">${ic('busca')}<input class="entrada" id="ac-q" type="search" placeholder="Buscar por título" value="${esc(f.q)}"></div></div>
+    <div id="ac-lista"><div class="vazio"><div class="giro" style="margin:0 auto"></div></div></div>`;
+  let q = db.from(tabela).select('*').order('atualizado_em', { ascending: false });
+  if (aba === 'lixeira') q = q.not('excluido_em', 'is', null); else q = q.is('excluido_em', null);
+  if (plano && aba === 'oficiais') q = q.eq('oficial', true);
+  if (plano && aba === 'participantes') q = q.eq('oficial', false);
+  const [{ data, error }, autores] = await Promise.all([q, plano && aba !== 'oficiais' ? db.from('perfis').select('id,nome') : Promise.resolve({ data: [] })]);
+  if (error) { falhou(error); return; }
+  const nomes = {}; (autores.data || []).forEach(a => nomes[a.id] = a.nome);
+  const lista = data || [];
+  const desenhar = () => {
+    const t = normalizar(f.q);
+    const l = lista.filter(x => normalizar(x.titulo + ' ' + x.tema).includes(t));
+    $('ac-lista').innerHTML = l.length ? `<div class="lista-simples">${l.map(x => `
+      <div class="linha-item" style="flex-wrap:wrap">
+        <div class="t" style="min-width:200px"><b>${esc(x.titulo || '(sem título)')}</b>
+          <small>${selo(x.status)} ${esc([x.faixa_etaria, x.tema].filter(Boolean).join(' · '))}${nomes[x.autor_id] ? ' · por ' + esc(nomes[x.autor_id]) : ''} · ${dataBR(x.atualizado_em)}</small></div>
+        <div class="linha-botoes">
+          <a class="btn btn-contorno btn-pequeno" href="#/${tipo}/${x.id}">${ic('olho')}Ver</a>
+          ${aba === 'lixeira'
+            ? `<button class="btn btn-contorno btn-pequeno" onclick="adminAcao('${tipo}','${x.id}','restaurar')">${ic('lixeira')}Restaurar</button>`
+            : `<a class="btn btn-contorno btn-pequeno" href="#/editar/${tipo}/${x.id}">${ic('editar')}Editar</a>
+               ${aba !== 'participantes' ? (x.status === 'publicado'
+                 ? `<button class="btn btn-contorno btn-pequeno" onclick="adminAcao('${tipo}','${x.id}','retirar')">Retirar publicação</button>`
+                 : `<button class="btn btn-verde btn-pequeno" onclick="adminAcao('${tipo}','${x.id}','publicar')">Publicar</button>`) : ''}
+               <button class="btn btn-contorno btn-pequeno" onclick="adminAcao('${tipo}','${x.id}','duplicar')">${ic('copiar')}${aba === 'participantes' ? 'Copiar como oficial' : 'Duplicar'}</button>
+               <button class="btn btn-perigo btn-pequeno" onclick="adminAcao('${tipo}','${x.id}','lixeira')" aria-label="Enviar para a lixeira">${ic('lixo')}</button>`}
+        </div>
+      </div>`).join('')}</div>` : `<div class="vazio"><p>${aba === 'lixeira' ? 'A lixeira está vazia.' : 'Nada por aqui ainda.'}</p></div>`;
+  };
+  $('ac-q').addEventListener('input', e => { f.q = e.target.value; desenhar(); });
+  desenhar();
+}
+
+async function adminAcao(tipo, id, acao) {
+  const tabela = tipo === 'plano' ? 'planos' : 'experiencias';
+  let r;
+  if (acao === 'publicar') r = await db.from(tabela).update({ status: 'publicado' }).eq('id', id);
+  if (acao === 'retirar') {
+    if (!confirm('Retirar da publicação? Os participantes deixam de ver. Ele volta a ser rascunho.')) return;
+    r = await db.from(tabela).update({ status: 'rascunho' }).eq('id', id);
+  }
+  if (acao === 'lixeira') {
+    if (!confirm('Enviar para a lixeira? Some para todos, mas dá para restaurar pela aba Lixeira.')) return;
+    r = await db.from(tabela).update({ excluido_em: new Date().toISOString() }).eq('id', id);
+  }
+  if (acao === 'restaurar') r = await db.from(tabela).update({ excluido_em: null }).eq('id', id);
+  if (acao === 'duplicar') {
+    const x = await buscarItem(tipo, id);
+    const copia = { ...x };
+    ['id', 'criado_em', 'atualizado_em', 'publicado_em', 'excluido_em'].forEach(k => delete copia[k]);
+    Object.assign(copia, { titulo: x.titulo + ' (cópia)', status: 'rascunho', autor_id: S.perfil.id });
+    if (tipo === 'plano') Object.assign(copia, { oficial: true, origem_id: x.id });
+    r = await db.from(tabela).insert(copia).select().single();
+    if (!r.error && tipo === 'plano') {
+      const { data: ligs } = await db.from('plano_experiencias').select('experiencia_id,ordem').eq('plano_id', id);
+      if (ligs && ligs.length) await db.from('plano_experiencias').insert(ligs.map(l => ({ ...l, plano_id: r.data.id })));
+    }
+    if (!r.error) { invalidar(); toast('Cópia criada como rascunho'); ir(`editar/${tipo}/${r.data.id}`); return; }
+  }
+  if (r && r.error) { toast(traduzirErro(r.error), 5000); return; }
+  invalidar();
+  toast({ publicar: 'Publicado ✓', retirar: 'Publicação retirada', lixeira: 'Enviado para a lixeira', restaurar: 'Restaurado ✓' }[acao]);
+  rotear();
+}
+
+// ---------- Categorias ----------
+async function telaCategorias() {
+  topo('Categorias');
+  await carregarCategorias();
+  main().innerHTML = `<p style="margin-top:0;color:var(--suave)">Estas listas aparecem nos filtros de pesquisa e como sugestão nos formulários. Renomear atualiza também os planos e experiências que já usam o nome.</p>
+    ${Object.entries(TIPOS_CATEGORIA).map(([tipo, rot]) => {
+      const l = S.catsTodas.filter(c => c.tipo === tipo);
+      return `<div class="cartao" style="margin-bottom:14px"><h2 style="font-size:18px;margin:0 0 10px">${rot}</h2>
+        <div class="lista-simples">${l.map((c, i) => `<div class="linha-item" style="${c.ativo ? '' : 'opacity:.55'}">
+          <div class="t"><b>${esc(c.nome)}</b>${c.ativo ? '' : '<small>desativada</small>'}</div>
+          <button class="btn-icone" onclick="moverCategoria('${c.id}',-1)" ${i === 0 ? 'disabled' : ''} aria-label="Subir">${ic('cima')}</button>
+          <button class="btn-icone" onclick="moverCategoria('${c.id}',1)" ${i === l.length - 1 ? 'disabled' : ''} aria-label="Descer">${ic('baixo')}</button>
+          <button class="btn-icone" onclick="renomearCategoria('${c.id}')" aria-label="Renomear">${ic('editar')}</button>
+          <button class="btn btn-contorno btn-pequeno" onclick="ativarCategoria('${c.id}',${!c.ativo})">${c.ativo ? 'Desativar' : 'Ativar'}</button>
+        </div>`).join('')}</div>
+        <form class="linha-botoes" style="margin-top:10px;flex-wrap:nowrap" onsubmit="event.preventDefault();novaCategoria('${tipo}',this)">
+          <input class="entrada" name="n" placeholder="Nova opção" maxlength="80"><button class="btn btn-verde">${ic('mais')}</button></form></div>`;
+    }).join('')}`;
+}
+async function novaCategoria(tipo, form) {
+  const nome = form.n.value.trim(); if (!nome) return;
+  const ordem = Math.max(0, ...S.catsTodas.filter(c => c.tipo === tipo).map(c => c.ordem)) + 1;
+  const { error } = await db.from('categorias').insert({ tipo, nome, ordem });
+  if (error) { toast(/duplicate/.test(error.message) ? 'Essa opção já existe.' : traduzirErro(error)); return; }
+  telaCategorias();
+}
+async function renomearCategoria(id) {
+  const c = S.catsTodas.find(x => x.id === id);
+  const nome = (prompt('Novo nome:', c.nome) || '').trim();
+  if (!nome || nome === c.nome) return;
+  const { error } = await db.from('categorias').update({ nome }).eq('id', id);
+  if (error) { toast(traduzirErro(error)); return; }
+  await Promise.all(['planos', 'experiencias'].map(t => db.from(t).update({ [c.tipo]: nome }).eq(c.tipo, c.nome)));
+  invalidar(); toast('Renomeado ✓'); telaCategorias();
+}
+async function ativarCategoria(id, ativo) {
+  const { error } = await db.from('categorias').update({ ativo }).eq('id', id);
+  if (error) { toast(traduzirErro(error)); return; }
+  telaCategorias();
+}
+async function moverCategoria(id, d) {
+  const c = S.catsTodas.find(x => x.id === id);
+  const l = S.catsTodas.filter(x => x.tipo === c.tipo);
+  const i = l.indexOf(c), o = l[i + d]; if (!o) return;
+  [l[i], l[i + d]] = [l[i + d], l[i]];
+  await Promise.all(l.map((x, k) => x.ordem === k + 1 ? null : db.from('categorias').update({ ordem: k + 1 }).eq('id', x.id)));
+  telaCategorias();
+}
+
+// ---------- Configurações ----------
+function telaConfig() {
+  topo('Configurações');
+  const campos = [
+    ['nome_plataforma', 'Nome da plataforma', 'Aparece no topo da tela inicial.'],
+    ['subtitulo', 'Frase de apresentação', ''],
+    ['boas_vindas', 'Mensagem de boas-vindas', 'Aparece abaixo do “Olá” na tela inicial.'],
+    ['contato', 'Contato para suporte', 'E-mail ou WhatsApp. Aparece em “Minha conta”.'],
+  ];
+  main().innerHTML = `<div class="cartao"><form onsubmit="event.preventDefault();salvarConfig()">
+    ${campos.map(([k, r, d]) => `<div class="campo"><label for="cf-${k}">${r}</label>${d ? `<div class="dica">${d}</div>` : ''}
+      <textarea class="entrada" id="cf-${k}" data-k="${k}" rows="2">${esc(S.config[k] || '')}</textarea></div>`).join('')}
+    <button class="btn btn-verde">Salvar</button></form></div>
+    <div class="cartao" style="margin-top:14px"><h2 style="font-size:18px;margin:0 0 6px">Sobre o sistema</h2>
+      <p style="margin:0;color:var(--suave)">Versão do app: <b>${APP_VERSION}</b><br>
+      Participantes entram só com o acesso criado aqui no painel — não existe cadastro público.<br>
+      Nada é apagado em definitivo pelo app: planos e experiências vão para a lixeira.</p></div>`;
+}
+async function salvarConfig() {
+  const linhas = [...document.querySelectorAll('[data-k]')].map(el => ({ chave: el.dataset.k, valor: el.value.trim(), atualizado_em: new Date().toISOString() }));
+  const { error } = await db.from('configuracoes').upsert(linhas);
+  if (error) { toast(traduzirErro(error)); return; }
+  await carregarConfig(); toast('Configurações salvas ✓');
+}
+
+// ---------- Registro de alterações ----------
+async function telaRegistro() {
+  topo('Registro de alterações');
+  carregando();
+  const { data, error } = await db.from('auditoria').select('*').order('quando', { ascending: false }).limit(300);
+  if (error) { falhou(error); return; }
+  const tab = { planos: 'Plano', experiencias: 'Experiência', categorias: 'Categoria', configuracoes: 'Configuração', perfis: 'Participante' };
+  main().innerHTML = (data || []).length ? `<p style="margin-top:0;color:var(--suave)">Últimas 300 alterações feitas por administradores.</p>
+    <div class="rolagem-x"><table class="tabela"><thead><tr><th>Quando</th><th>Quem</th><th>O quê</th><th>Item</th></tr></thead><tbody>
+    ${data.map(a => `<tr><td style="white-space:nowrap">${dataBR(a.quando)}</td><td>${esc(a.usuario_nome || '')}</td>
+      <td>${esc(tab[a.tabela] || a.tabela)}: ${esc(a.acao)}</td><td>${esc(a.resumo || '')}</td></tr>`).join('')}
+    </tbody></table></div>` : '<div class="vazio"><p>Nenhuma alteração registrada ainda.</p></div>';
+}
+
+// ============================================================
+//  INÍCIO DO APP
+// ============================================================
+(async function boot() {
+  document.querySelectorAll('.app-versao').forEach(e => e.textContent = APP_VERSION);
+  document.querySelectorAll('.olho').forEach(b => b.innerHTML = ic('olho'));
+  if (!window.supabase) {
+    $('boot').innerHTML = '<div class="vazio">' + ic('alerta') + '<p><b>Sem conexão.</b><br>Não consegui carregar o sistema. Confira a internet e abra de novo.</p><button class="btn btn-verde" onclick="location.reload()">Tentar de novo</button></div>';
+    return;
+  }
+  if (!configurado) {
+    mostrar('tela-login');
+    toast('App ainda não conectado ao Supabase (falta preencher SUPABASE_URL e SUPABASE_KEY no index.html).', 10000);
+    $('btn-entrar').disabled = true;
+    return;
+  }
+
+  // Link que veio do e-mail (nova senha) ou link vencido
+  const h = location.hash + ' ' + location.search;
+  if (/type=recovery/.test(h)) S.recuperando = true;
+  if (/error_description=/.test(h)) {
+    const p = new URLSearchParams(location.hash.slice(1));
+    const vencido = /expired|invalid/i.test(p.get('error_description') || '') || p.get('error_code') === 'otp_expired';
+    history.replaceState(null, '', location.pathname);
+    setTimeout(() => toast(vencido ? 'Este link expirou ou já foi usado. Peça outro em “Esqueci minha senha”.' : 'Link inválido: ' + p.get('error_description'), 7000), 400);
+  }
+
+  db.auth.onAuthStateChange((evento) => {
+    // Não chamar o supabase direto aqui dentro (trava o cliente) — agenda.
+    if (evento === 'PASSWORD_RECOVERY') {
+      S.recuperando = true;
+      setTimeout(() => mostrar('tela-senha'), 0);
+    }
+    if (evento === 'SIGNED_OUT' && S.perfil) {
+      setTimeout(() => mostrarLogin('Sua sessão terminou. Entre novamente.'), 0);
+    }
+  });
+
+  const { data: { session } } = await db.auth.getSession();
+  if (S.recuperando) { mostrar('tela-senha'); return; }
+  if (session) await iniciar(); else mostrarLogin();
+})();
+</script>
+</body>
+</html>

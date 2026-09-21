@@ -1,0 +1,62 @@
+name: Backup semanal
+
+# Exporta todas as tabelas, CIFRA com senha e guarda por 90 dias como
+# artefato do GitHub (Actions → execução → Artifacts).
+#
+# Lição do Trupe: backup em texto claro num repositório é vazamento
+# esperando acontecer. Sem a senha configurada, o backup NÃO é guardado
+# e o workflow fica vermelho.
+#
+# Secrets necessários:
+#   SUPABASE_URL          ex.: https://abcd1234.supabase.co
+#   SUPABASE_SERVICE_KEY  a Secret key (sb_secret_...) — NUNCA vai no app
+#   BACKUP_SENHA          senha para cifrar (guarde num lugar seguro!)
+#
+# Para abrir um backup:  gpg --decrypt backup-AAAA-MM-DD.json.gz.gpg > backup.json.gz
+
+on:
+  schedule:
+    - cron: '0 6 * * 0'   # domingos, 3h em Brasília
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Exportar dados
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/backup.py
+
+      - name: Cifrar
+        if: always()
+        env:
+          BACKUP_SENHA: ${{ secrets.BACKUP_SENHA }}
+        run: |
+          set -e
+          if [ -z "$BACKUP_SENHA" ]; then
+            echo "::error::Secret BACKUP_SENHA não configurado — backup NÃO guardado."
+            rm -f backup/*.json.gz
+            exit 1
+          fi
+          achou=0
+          for f in backup/*.json.gz; do
+            [ -e "$f" ] || continue
+            gpg --batch --yes --passphrase "$BACKUP_SENHA" --symmetric --cipher-algo AES256 "$f"
+            rm -f "$f"; achou=1
+          done
+          [ "$achou" = "1" ] || { echo "::error::Nenhum arquivo para cifrar."; exit 1; }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backup-${{ github.run_number }}
+          path: backup/*.gpg
+          retention-days: 90
+          if-no-files-found: error
