@@ -9,6 +9,12 @@
 //   convite travava ("limite de e-mails atingido"). Aqui o admin define
 //   uma senha inicial e passa para a pessoa. Nenhum e-mail é enviado.
 //
+// E-mail de boas-vindas (opcional): se o secret RESEND_API_KEY existir,
+// a pessoa recebe um e-mail com o botão "Criar minha senha" — um link de
+// uso único gerado aqui. Assim ninguém além dela conhece a senha.
+// O e-mail sai como "Dinâmica Natural <dinamicanatural@frentedigital.app.br>"
+// (troque em EMAIL_REMETENTE, nos secrets da função, se quiser outro).
+//
 // Bloquear = perfil.ativo=false E "ban" no Auth. O ban impede o login
 // mesmo que alguém tente pela API; o ativo=false fecha os dados no RLS.
 // ============================================================
@@ -29,6 +35,10 @@ function resposta(corpo: unknown, status = 200) {
   });
 }
 const erro = (msg: string) => resposta({ ok: false, erro: msg });
+
+function esc(s: string): string {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+}
 
 function traduzir(msg: string): string {
   const m = String(msg || '');
@@ -79,6 +89,49 @@ Deno.serve(async (req) => {
     return data;
   }
 
+  // Endereço do app (vem do navegador do admin). O Supabase só aceita se
+  // estiver na lista de Redirect URLs; senão usa o Site URL.
+  const site = /^https:\/\/[^\s"'<>]+$/.test(String(corpo.site || '')) ? String(corpo.site) : undefined;
+
+  async function enviarBoasVindas(email: string, nome: string): Promise<string | null> {
+    const chave = Deno.env.get('RESEND_API_KEY');
+    if (!chave) return 'E-mail não configurado (falta o secret RESEND_API_KEY na função).';
+    const { data: link, error: eL } = await adm.auth.admin.generateLink({
+      type: 'recovery', email, options: site ? { redirectTo: site } : undefined,
+    });
+    const acesso = link?.properties?.action_link;
+    if (eL || !acesso) return 'Não consegui gerar o link: ' + (eL?.message || 'sem link');
+    const remetente = Deno.env.get('EMAIL_REMETENTE') || 'Dinâmica Natural <dinamicanatural@frentedigital.app.br>';
+    const primeiro = esc(nome.split(/\s+/)[0] || nome);
+    const appUrl = esc(site || '');
+    const html = `<div style="font-family:Arial,Helvetica,sans-serif;background:#E7F1E9;padding:24px">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden">
+    <div style="background:#0E0F0E;padding:18px 22px;color:#EEE13D;font-weight:bold;font-size:18px">Dinâmica Natural</div>
+    <div style="padding:22px;color:#1D2A22;font-size:15px;line-height:1.55">
+      <p style="margin:0 0 12px">Olá, ${primeiro}!</p>
+      <p style="margin:0 0 12px">Seu acesso aos <b>Planos de Atividades Imersivas</b> da Dinâmica Natural foi liberado.</p>
+      <p style="margin:0 0 18px">Para começar, crie a sua senha:</p>
+      <p style="margin:0 0 20px;text-align:center"><a href="${esc(acesso)}" style="background:#2BA51F;color:#fff;text-decoration:none;font-weight:bold;padding:13px 26px;border-radius:26px;display:inline-block">Criar minha senha</a></p>
+      <p style="margin:0 0 6px"><b>Seu login:</b> ${esc(email)}</p>
+      ${appUrl ? `<p style="margin:0 0 12px"><b>Endereço do app:</b> <a href="${appUrl}" style="color:#1E7D15">${appUrl}</a></p>` : ''}
+      <p style="margin:0 0 12px;font-size:13px;color:#5B6B61">O botão vale por tempo limitado e funciona uma vez só. Se expirar, use “Esqueci minha senha” na tela de entrada.</p>
+      <p style="margin:0;font-size:13px;color:#5B6B61">Dica: no celular, abra o app e use “Adicionar à tela inicial” para ter o ícone.</p>
+    </div>
+  </div>
+</div>`;
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: remetente, to: [email],
+        subject: 'Seu acesso aos Planos de Atividades Imersivas — Dinâmica Natural',
+        html,
+      }),
+    });
+    if (!r.ok) return 'O serviço de e-mail recusou: ' + (await r.text()).slice(0, 160);
+    return null;
+  }
+
   try {
     // ---------------------------------------------------------- criar
     if (acao === 'criar') {
@@ -101,7 +154,12 @@ Deno.serve(async (req) => {
       });
       if (eP) return erro('Login criado, mas o perfil falhou: ' + eP.message);
       await auditar('cadastrou participante', data.user.id, `${nome} <${email}> (${papel})`);
-      return resposta({ ok: true, id: data.user.id });
+      let emailErro: string | null = null;
+      if (corpo.enviar_email) {
+        emailErro = await enviarBoasVindas(email, nome);
+        if (!emailErro) await auditar('enviou e-mail de boas-vindas', data.user.id, `${nome} <${email}>`);
+      }
+      return resposta({ ok: true, id: data.user.id, email_enviado: !!corpo.enviar_email && !emailErro, email_erro: emailErro });
     }
 
     if (!id) return erro('Pessoa não informada.');
@@ -127,6 +185,14 @@ Deno.serve(async (req) => {
         .update({ nome, email, papel, pode_criar_planos: podeCriar }).eq('id', id);
       if (eP) return erro(eP.message);
       await auditar('editou participante', id, `${nome} <${email}> (${papel})`);
+      return resposta({ ok: true });
+    }
+
+    // ---------------------------------------------------------- reenviar boas-vindas
+    if (acao === 'boas_vindas') {
+      const falha = await enviarBoasVindas(p.email, p.nome);
+      if (falha) return erro(falha);
+      await auditar('enviou e-mail de boas-vindas', id, `${p.nome} <${p.email}>`);
       return resposta({ ok: true });
     }
 

@@ -271,7 +271,7 @@ select.entrada{appearance:none;background-image:url("data:image/svg+xml,%3Csvg x
 <section id="tela-senha" class="tela-cheia oculto">
   <div class="cartao-login">
     <img class="logo" src="logo.jpg" alt="Dinâmica Natural" style="width:120px">
-    <h1>Nova senha</h1>
+    <h1>Crie sua senha</h1>
     <p class="lema">Escolha uma senha com pelo menos 8 caracteres.</p>
     <form onsubmit="event.preventDefault();salvarNovaSenha()">
       <div class="campo-pilula"><input id="nova-senha" type="password" autocomplete="new-password" placeholder="Nova senha" required></div>
@@ -303,7 +303,7 @@ select.entrada{appearance:none;background-image:url("data:image/svg+xml,%3Csvg x
 //  Ao publicar mudança: suba APP_VERSION aqui E a VERSION no sw.js
 //  (o GitHub confere se as duas batem e fica vermelho se não).
 // ============================================================
-const APP_VERSION = 'v1.0.3';
+const APP_VERSION = 'v1.0.4';
 const SUPABASE_URL = 'https://tfmogwjmvuvrdxgrfopi.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_u8_1FLQ2ekhds_25aXNrww_WF1mkLB8';
 
@@ -1435,6 +1435,8 @@ function formParticipante(p) {
         <option value="participante" ${p.papel !== 'admin' ? 'selected' : ''}>Participante</option>
         <option value="admin" ${p.papel === 'admin' ? 'selected' : ''}>Administrador</option></select></div>
       <label class="check"><input type="checkbox" id="fp-criar" ${p.pode_criar_planos ? 'checked' : ''}> Pode criar os próprios planos</label>
+      ${novo ? `<label class="check" style="align-items:flex-start"><input type="checkbox" id="fp-bv" checked style="margin-top:3px">
+        <span>Enviar e-mail de boas-vindas<br><small style="font-weight:400;color:var(--suave)">Com o botão “Criar minha senha”: a pessoa escolhe a própria senha.</small></span></label>` : ''}
       <button class="btn btn-verde" id="fp-btn" style="width:100%">${novo ? 'Cadastrar' : 'Salvar'}</button>
     </form>`);
   $('fp-btn').onclick = async () => {
@@ -1443,23 +1445,28 @@ function formParticipante(p) {
       nome: $('fp-nome').value.trim(), email: $('fp-email').value.trim(),
       papel: $('fp-papel').value, pode_criar_planos: $('fp-criar').checked,
     };
-    if (novo) corpo.senha = $('fp-senha').value;
+    if (novo) { corpo.senha = $('fp-senha').value; corpo.enviar_email = $('fp-bv').checked; corpo.site = location.origin + location.pathname; }
     $('fp-btn').disabled = true;
     try {
-      await chamarFuncao(corpo);
+      const r = await chamarFuncao(corpo);
       m.fechar();
-      if (novo) mostrarDadosDeAcesso(corpo.nome, corpo.email, corpo.senha);
+      if (novo) mostrarDadosDeAcesso(corpo.nome, corpo.email, corpo.senha, corpo.enviar_email ? r : null);
       else toast('Dados salvos ✓');
       telaParticipantes();
     } catch (e) { toast(e.message, 6000); $('fp-btn').disabled = false; }
   };
 }
 
-function mostrarDadosDeAcesso(nome, email, senha) {
+function mostrarDadosDeAcesso(nome, email, senha, envio) {
   const link = location.origin + location.pathname;
+  const aviso = !envio ? ''
+    : envio.email_enviado
+      ? `<div class="aviso-caixa" style="background:var(--verde-claro);color:var(--verde-esc)">📧 E-mail de boas-vindas enviado para <b>${esc(email)}</b>. A pessoa cria a própria senha pelo botão do e-mail. Se não chegar (olhe o spam), use a mensagem abaixo.</div>`
+      : `<div class="aviso-caixa">O e-mail de boas-vindas <b>não foi enviado</b>: ${esc(envio.email_erro || '')}<br>Envie a mensagem abaixo pelo WhatsApp.</div>`;
   const msg = `Olá, ${primeiroNome(nome)}! Seu acesso aos Planos de Atividades Imersivas da Dinâmica Natural está liberado.\n\nLink: ${link}\nE-mail: ${email}\nSenha: ${senha}\n\nNo primeiro acesso, troque a senha em “Minha conta”. Dica: no celular, abra o link e use “Adicionar à tela inicial”.`;
   const m = abrirModal(`<h2>Acesso criado ✓</h2>
-    <p>Envie estes dados para <b>${esc(nome)}</b>. A senha não fica visível depois de fechar esta janela.</p>
+    ${aviso}
+    <p>${envio && envio.email_enviado ? 'Se preferir, envie também estes dados para' : 'Envie estes dados para'} <b>${esc(nome)}</b> pelo WhatsApp. A senha não fica visível depois de fechar esta janela.</p>
     <textarea class="entrada" rows="9" readonly id="msg-acesso">${esc(msg)}</textarea>
     <div class="linha-botoes" style="margin-top:12px">
       <button class="btn btn-verde" id="b-copiar">${ic('copiar')}Copiar</button>
@@ -1481,6 +1488,7 @@ function acoesParticipante(id) {
     <div class="lista-simples">
       <button class="btn btn-contorno" data-a="editar">${ic('editar')}Editar dados</button>
       <button class="btn btn-contorno" data-a="senha">${ic('cadeado')}Definir nova senha</button>
+      ${p.ativo && !p.removido_em ? `<button class="btn btn-contorno" data-a="boas_vindas">📧 Reenviar e-mail de boas-vindas</button>` : ''}
       ${eu ? '' : (p.ativo && !p.removido_em
         ? `<button class="btn btn-perigo" data-a="bloquear">Bloquear acesso</button>`
         : `<button class="btn btn-verde" data-a="reativar">Reativar acesso</button>`)}
@@ -1489,7 +1497,10 @@ function acoesParticipante(id) {
   m.querySelectorAll('[data-a]').forEach(b => b.onclick = async () => {
     const a = b.dataset.a;
     if (a === 'editar') { m.fechar(); formParticipante(p); return; }
-    let corpo = { acao: a, id: p.id };
+    let corpo = { acao: a, id: p.id, site: location.origin + location.pathname };
+    if (a === 'boas_vindas' && !confirm(`Enviar para ${p.email} um e-mail com o botão “Criar minha senha”?
+
+A senha atual continua valendo até a pessoa criar a nova.`)) return;
     if (a === 'senha') {
       const s = prompt(`Nova senha para ${p.nome} (mínimo 8 caracteres):`, gerarSenha());
       if (!s) return; corpo.senha = s;
@@ -1501,7 +1512,7 @@ function acoesParticipante(id) {
       await chamarFuncao(corpo);
       m.fechar();
       if (a === 'senha') mostrarDadosDeAcesso(p.nome, p.email, corpo.senha);
-      else toast({ bloquear: 'Acesso bloqueado', reativar: 'Acesso reativado ✓', revogar: 'Acesso revogado' }[a]);
+      else toast({ bloquear: 'Acesso bloqueado', reativar: 'Acesso reativado ✓', revogar: 'Acesso revogado', boas_vindas: 'E-mail enviado para ' + p.email + ' ✓' }[a], 4000);
       telaParticipantes();
     } catch (e) { toast(e.message, 6000); b.disabled = false; }
   });
