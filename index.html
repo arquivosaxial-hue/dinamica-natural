@@ -66,6 +66,8 @@ svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .btn-login:active{transform:translateY(2px);box-shadow:0 1px 0 var(--verde-esc)}
 .btn-login:disabled{opacity:.6}
 .versao{margin-top:28px;font-size:12px;color:var(--suave)}
+.link-versao{background:none;border:0;padding:6px 4px;color:inherit;font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.link-versao:hover{color:var(--verde-esc)}
 /* telas baixas (notebook, celular deitado): compacta para caber sem rolar */
 @media (max-height:820px){
   .tela-cheia{padding:12px 16px}
@@ -261,7 +263,7 @@ select.entrada{appearance:none;background-image:url("data:image/svg+xml,%3Csvg x
       <button type="button" class="link-sutil" onclick="esqueciSenha()">Esqueci minha senha</button>
       <button id="btn-entrar" class="btn-login" type="submit">Entrar</button>
     </form>
-    <div class="versao">Dinâmica Natural · <span class="app-versao"></span></div>
+    <div class="versao">Dinâmica Natural · <button type="button" class="link-versao" onclick="atualizarVersao()" title="Buscar e carregar a versão mais recente do app"><span class="app-versao"></span> · ↻ Atualizar versão</button></div>
   </div>
 </section>
 
@@ -301,7 +303,7 @@ select.entrada{appearance:none;background-image:url("data:image/svg+xml,%3Csvg x
 //  Ao publicar mudança: suba APP_VERSION aqui E a VERSION no sw.js
 //  (o GitHub confere se as duas batem e fica vermelho se não).
 // ============================================================
-const APP_VERSION = 'v1.0.2';
+const APP_VERSION = 'v1.0.3';
 const SUPABASE_URL = 'https://tfmogwjmvuvrdxgrfopi.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_u8_1FLQ2ekhds_25aXNrww_WF1mkLB8';
 
@@ -1304,9 +1306,9 @@ function telaConta() {
     </div>
     <div class="linha-botoes">
       <button class="btn btn-perigo" onclick="sair()">${ic('sair')}Sair do app</button>
-      <button class="btn btn-contorno" onclick="procurarAtualizacao()">Procurar atualização</button>
+      <button class="btn btn-contorno" onclick="atualizarVersao()">↻ Atualizar versão</button>
     </div>
-    <p class="versao">Dinâmica Natural · Planos de Atividades Imersivas · <b>${APP_VERSION}</b>${S.config.contato ? `<br>Contato: ${esc(S.config.contato)}` : ''}</p>`;
+    <p class="versao">Dinâmica Natural · Planos de Atividades Imersivas · <button type="button" class="link-versao" onclick="atualizarVersao()"><b>${APP_VERSION}</b> · ↻ Atualizar versão</button>${S.config.contato ? `<br>Contato: ${esc(S.config.contato)}` : ''}</p>`;
 }
 async function trocarSenha() {
   const a = $('c-s1').value, b = $('c-s2').value;
@@ -1319,11 +1321,34 @@ async function trocarSenha() {
   $('c-s1').value = $('c-s2').value = '';
   toast('Senha alterada ✓');
 }
-async function procurarAtualizacao() {
-  if (!window.__swReg) { location.reload(); return; }
-  toast('Procurando…');
-  await window.__swReg.update().catch(() => {});
-  setTimeout(() => { if (!swEsperando) toast('Você já está na versão mais recente (' + APP_VERSION + ').'); }, 2500);
+// Botão "Atualizar versão" (rodapé do login e Minha conta).
+// Pergunta ao servidor qual versão está no ar; se for diferente, limpa o
+// que o app guardou no aparelho e recarrega já na versão nova.
+async function atualizarVersao() {
+  if (S.sujo && !confirm('Você tem alterações não salvas neste formulário. Elas ficam guardadas neste aparelho, mas é melhor salvar antes. Atualizar mesmo assim?')) return;
+  toast('Buscando a versão mais recente…', 10000);
+  let noAr = null, reg = null;
+  try {
+    reg = navigator.serviceWorker ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg) await reg.update().catch(() => {});
+    const html = await fetch(location.pathname + '?nocache=' + Date.now(), { cache: 'no-store' }).then(r => r.text());
+    // (montado em partes para o workflow "Conferir versão" não confundir esta linha com a versão)
+    noAr = (html.match(new RegExp('const APP_' + "VERSION = '([^']+)'")) || [])[1] || null;
+  } catch (e) {
+    toast('Sem conexão com a internet. Tente de novo quando estiver on-line.', 5000);
+    return;
+  }
+  if (noAr === APP_VERSION && !(reg && reg.waiting)) {
+    toast('Você já está na versão mais recente (' + APP_VERSION + ') ✓', 4000);
+    return;
+  }
+  S.sujo = false;
+  toast('Atualizando para ' + (noAr || 'a versão nova') + '…', 10000);
+  try {
+    if (reg && reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+    const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k)));
+  } catch (e) {}
+  setTimeout(() => location.reload(), 600);
 }
 
 // ============================================================

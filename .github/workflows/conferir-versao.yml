@@ -23,8 +23,8 @@ jobs:
 
       - name: index.html e sw.js com a mesma versão
         run: |
-          app=$(grep -oP "const APP_VERSION = '\K[^']+" index.html)
-          sw=$(grep -oP "const VERSION = '\K[^']+" sw.js)
+          app=$(grep -oP "const APP_VERSION = '\K[^']+" index.html | head -1)
+          sw=$(grep -oP "const VERSION = '\K[^']+" sw.js | head -1)
           echo "index.html: $app"
           echo "sw.js:      $sw"
           if [ -z "$app" ] || [ "$app" != "$sw" ]; then
@@ -43,7 +43,7 @@ jobs:
           fi
           # dá tempo do GitHub Pages publicar
           if [ "${{ github.event_name }}" = "push" ]; then sleep 150; fi
-          no_ar=$(curl -s "$SITE_URL?nocache=$(date +%s)" | grep -oP "const APP_VERSION = '\K[^']+" || true)
+          no_ar=$(curl -s "$SITE_URL?nocache=$(date +%s)" | grep -oP "const APP_VERSION = '\K[^']+" | head -1 || true)
           echo "No ar: ${no_ar:-?} — Esperado: $APP"
           if [ "$no_ar" != "$APP" ]; then
             echo "::error::O site no ar não está na versão do repositório."
