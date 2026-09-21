@@ -12,8 +12,10 @@
 // E-mail de boas-vindas (opcional): se o secret RESEND_API_KEY existir,
 // a pessoa recebe um e-mail com o botão "Criar minha senha" — um link de
 // uso único gerado aqui. Assim ninguém além dela conhece a senha.
-// O e-mail sai como "Dinâmica Natural <dinamicanatural@frentedigital.app.br>"
-// (troque em EMAIL_REMETENTE, nos secrets da função, se quiser outro).
+// Conta do Resend PRÓPRIA da Dinâmica Natural (separada da do Trupe), com o
+// subdomínio dinamicanatural.frentedigital.app.br verificado. Respostas vão
+// para dinamicanatural@frentedigital.app.br. Para trocar, crie os secrets
+// EMAIL_REMETENTE / EMAIL_RESPOSTA na função.
 //
 // Bloquear = perfil.ativo=false E "ban" no Auth. O ban impede o login
 // mesmo que alguém tente pela API; o ativo=false fecha os dados no RLS.
@@ -101,7 +103,8 @@ Deno.serve(async (req) => {
     });
     const acesso = link?.properties?.action_link;
     if (eL || !acesso) return 'Não consegui gerar o link: ' + (eL?.message || 'sem link');
-    const remetente = Deno.env.get('EMAIL_REMETENTE') || 'Dinâmica Natural <dinamicanatural@frentedigital.app.br>';
+    const remetente = Deno.env.get('EMAIL_REMETENTE') || 'Dinâmica Natural <nao-responda@dinamicanatural.frentedigital.app.br>';
+    const resposta_para = Deno.env.get('EMAIL_RESPOSTA') || 'dinamicanatural@frentedigital.app.br';
     const primeiro = esc(nome.split(/\s+/)[0] || nome);
     const appUrl = esc(site || '');
     const html = `<div style="font-family:Arial,Helvetica,sans-serif;background:#E7F1E9;padding:24px">
@@ -123,7 +126,7 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: remetente, to: [email],
+        from: remetente, to: [email], reply_to: resposta_para,
         subject: 'Seu acesso aos Planos de Atividades Imersivas — Dinâmica Natural',
         html,
       }),
