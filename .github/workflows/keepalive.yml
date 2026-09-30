@@ -8,9 +8,13 @@ name: Manter Supabase ativo
 #   SUPABASE_URL       ex.: https://abcd1234.supabase.co
 #   SUPABASE_ANON_KEY  a Publishable key (sb_publishable_...)
 
+# 30/09/2026: o Supabase avisou que pausaria o projeto por inatividade
+# mesmo com este workflow verde 2x por semana. Duas mudanças desde então:
+# passou a ser diário, e o ping() agora GRAVA uma marca no banco
+# (sql/03-keepalive-mais-forte.sql) — leitura pequena eles não contam.
 on:
   schedule:
-    - cron: '0 12 * * 1,4'   # segundas e quintas, 12h UTC (9h em Brasília)
+    - cron: '0 12 * * *'      # todo dia, 12h UTC (9h em Brasília)
   workflow_dispatch:          # botão "Run workflow" para testar na hora
 
 jobs:
