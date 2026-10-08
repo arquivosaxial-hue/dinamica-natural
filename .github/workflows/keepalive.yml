@@ -1,27 +1,34 @@
 name: Manter Supabase ativo
 
 # O Supabase gratuito PAUSA o projeto depois de ~7 dias sem uso.
-# Isto consulta o banco 2x por semana. Fica VERMELHO se falhar —
-# assim a gente fica sabendo, em vez de descobrir com o app fora do ar.
+# Fica VERMELHO se falhar — assim a gente fica sabendo, em vez de
+# descobrir com o app fora do ar.
 #
 # Precisa dos secrets (Settings → Secrets and variables → Actions):
 #   SUPABASE_URL       ex.: https://abcd1234.supabase.co
 #   SUPABASE_ANON_KEY  a Publishable key (sb_publishable_...)
+#
+# Histórico (vale manter, porque isto já enganou duas vezes):
+#  • 30/09/2026 — veio aviso de pausa mesmo com o workflow verde 2x por
+#    semana. Passou a ser diário e o ping() virou ESCRITA no banco
+#    (sql/03-keepalive-mais-forte.sql).
+#  • 08/10/2026 — o aviso voltou mesmo com 7 dias seguidos de ping.
+#    Agora são 3 horários por dia e cada execução toca em três partes do
+#    projeto (banco, autenticação e REST), para parecer uso de verdade
+#    e não uma única chamada mínima.
 
-# 30/09/2026: o Supabase avisou que pausaria o projeto por inatividade
-# mesmo com este workflow verde 2x por semana. Duas mudanças desde então:
-# passou a ser diário, e o ping() agora GRAVA uma marca no banco
-# (sql/03-keepalive-mais-forte.sql) — leitura pequena eles não contam.
 on:
   schedule:
-    - cron: '0 12 * * *'      # todo dia, 12h UTC (9h em Brasília)
+    - cron: '0 11 * * *'      # 8h em Brasília
+    - cron: '0 17 * * *'      # 14h
+    - cron: '0 23 * * *'      # 20h
   workflow_dispatch:          # botão "Run workflow" para testar na hora
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Consultar o banco
+      - name: Conferir os secrets
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
@@ -30,12 +37,42 @@ jobs:
             echo "::error::Faltam os secrets SUPABASE_URL e/ou SUPABASE_ANON_KEY."
             exit 1
           fi
-          codigo=$(curl -s -o resposta.txt -w "%{http_code}" -X POST "$SUPABASE_URL/rest/v1/rpc/ping" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Content-Type: application/json" -d '{}')
-          echo "HTTP $codigo — $(cat resposta.txt)"
-          if [ "$codigo" -ge 400 ]; then
-            echo "::error::O Supabase não respondeu como esperado (HTTP $codigo)."
+
+      - name: Banco, autenticação e REST
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          falhou=0
+
+          # 1. Banco: grava a marca do batimento (3 vezes, com pausa — um
+          #    pinguinho só a cada 8 horas pode não contar como uso).
+          for n in 1 2 3; do
+            codigo=$(curl -s -o r.txt -w "%{http_code}" -X POST "$SUPABASE_URL/rest/v1/rpc/ping" \
+              -H "apikey: $SUPABASE_ANON_KEY" -H "Content-Type: application/json" -d '{}')
+            echo "ping $n: HTTP $codigo — $(cat r.txt)"
+            [ "$codigo" -ge 400 ] && falhou=1
+            sleep 5
+          done
+
+          # 2. Autenticação (o serviço de login responde?)
+          codigo=$(curl -s -o /dev/null -w "%{http_code}" "$SUPABASE_URL/auth/v1/health" \
+            -H "apikey: $SUPABASE_ANON_KEY")
+          echo "auth/health: HTTP $codigo"
+          [ "$codigo" -ge 400 ] && falhou=1
+
+          # 3. REST: a tabela protegida DEVE recusar quem não fez login.
+          #    Isto é keepalive e teste de segurança no mesmo passo.
+          codigo=$(curl -s -o /dev/null -w "%{http_code}" "$SUPABASE_URL/rest/v1/planos?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY")
+          echo "leitura anônima de planos: HTTP $codigo (esperado 401)"
+          if [ "$codigo" != "401" ] && [ "$codigo" != "403" ]; then
+            echo "::error::A tabela planos respondeu $codigo para quem não fez login. Confira as regras de acesso (RLS/grants)."
+            falhou=1
+          fi
+
+          if [ "$falhou" = "1" ]; then
+            echo "::error::Keepalive falhou — veja os códigos acima."
             exit 1
           fi
-          echo "Supabase respondeu — projeto ativo."
+          echo "Projeto ativo e protegido."
